@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- This file was auto-generated from WSDL -->
+<!-- by the Apache Axis2 version: 1.6.2  Built on : Apr 17, 2012 (05:33:49 IST) -->
+<serviceGroup>
+    <service name="EucalyptusNC">
+        <messageReceivers>
+            <messageReceiver mep="http://www.w3.org/ns/wsdl/in-out" class="edu.ucsb.eucalyptus.EucalyptusNCMessageReceiverInOut"/>
+        </messageReceivers>
+        <parameter name="ServiceClass">edu.ucsb.eucalyptus.EucalyptusNCSkeleton</parameter>
+        <parameter name="useOriginalwsdl">true</parameter>
+        <parameter name="modifyUserWSDLPortAddress">true</parameter>
+        <operation name="ncDescribeSensors" mep="http://www.w3.org/ns/wsdl/in-out" namespace="http://eucalyptus.ucsb.edu/">
+            <actionMapping>EucalyptusNC#ncDescribeSensors</actionMapping>
+            <outputActionMapping>http://eucalyptus.ucsb.edu/EucalyptusNC/ncDescribeSensorsResponse</outputActionMapping>
+        </operation>
+        <operation name="ncDescribeBundleTasks" mep="http://www.w3.org/ns/wsdl/in-out" namespace="http://eucalyptus.ucsb.edu/">
+            <actionMapping>EucalyptusNC#ncDescribeBundleTasks</actionMapping>
+            <outputActionMapping>http://eucalyptus.ucsb.edu/EucalyptusNC/ncDescribeBundleTasksResponse</outputActionMapping>
+        </operation>
+        <operation name="ncRunInstance" mep="http://www.w3.org/ns/wsdl/in-out" namespace="http://eucalyptus.ucsb.edu/">
+            <actionMapping>EucalyptusNC#ncRunInstance</actionMapping>
+            <outputActionMapping>http://eucalyptus.ucsb.edu/EucalyptusNC/ncRunInstanceResponse</outputActionMapping>
+        </operation>
+        <operation name="ncRebootInstance" mep="http://www.w3.org/ns/wsdl/in-out" namespace="http://eucalyptus.ucsb.edu/">
+            <actionMapping>EucalyptusNC#ncRebootInstance</actionMapping>
+            <outputActionMapping>http://eucalyptus.ucsb.edu/EucalyptusNC/ncRebootInstanceResponse</outputActionMapping>
+        </operation>
+        <operation name="ncGetConsoleOutput" mep="http://www.w3.org/ns/wsdl/in-out" namespace="http://eucalyptus.ucsb.edu/">
+            <actionMapping>EucalyptusNC#ncGetConsoleOutput</actionMapping>
+            <outputActionMapping>http://eucalyptus.ucsb.edu/EucalyptusNC/ncGetConsoleOutputResponse</outputActionMapping>
+        </operation>
+        <operation name="ncCreateImage" mep="http://www.w3.org/ns/wsdl/in-out" namespace="http://eucalyptus.ucsb.edu/">
+            <actionMapping>EucalyptusNC#ncCreateImage</actionMapping>
+            <outputActionMapping>http://eucalyptus.ucsb.edu/EucalyptusNC/ncCreateImageResponse</outputActionMapping>
+        </operation>
+        <operation name="ncDetachVolume" mep="http://www.w3.org/ns/wsdl/in-out" namespace="http://eucalyptus.ucsb.edu/">
+            <actionMapping>EucalyptusNC#ncDetachVolume</actionMapping>
+            <outputActionMapping>http://eucalyptus.ucsb.edu/EucalyptusNC/ncDetachVolumeResponse</outputActionMapping>
+        </operation>
+        <operation name="ncDescribeInstances" mep="http://www.w3.org/ns/wsdl/in-out" namespace="http://eucalyptus.ucsb.edu/">
+            <actionMapping>EucalyptusNC#ncDescribeInstances</actionMapping>
+            <outputActionMapping>http://eucalyptus.ucsb.edu/EucalyptusNC/ncDescribeInstancesResponse</outputActionMapping>
+        </operation>
+        <operation name="ncAttachVolume" mep="http://www.w3.org/ns/wsdl/in-out" namespace="http://eucalyptus.ucsb.edu/">
+            <actionMapping>EucalyptusNC#ncAttachVolume</actionMapping>
+            <outputActionMapping>http://eucalyptus.ucsb.edu/EucalyptusNC/ncAttachVolumeResponse</outputActionMapping>
+        </operation>
+        <operation name="ncPowerDown" mep="http://www.w3.org/ns/wsdl/in-out" namespace="http://eucalyptus.ucsb.edu/">
+            <actionMapping>EucalyptusNC#ncPowerDown</actionMapping>
+            <outputActionMapping>http://eucalyptus.ucsb.edu/EucalyptusNC/ncPowerDownResponse</outputActionMapping>
+        </operation>
+        <operation name="ncDescribeResource" mep="http://www.w3.org/ns/wsdl/in-out" namespace="http://eucalyptus.ucsb.edu/">
+            <actionMapping>EucalyptusNC#ncDescribeResource</actionMapping>
+            <outputActionMapping>http://eucalyptus.ucsb.edu/EucalyptusNC/ncDescribeResourceResponse</outputActionMapping>
+        </operation>
+        <operation name="ncCancelBundleTask" mep="http://www.w3.org/ns/wsdl/in-out" namespace="http://eucalyptus.ucsb.edu/">
+            <actionMapping>EucalyptusNC#ncCancelBundleTask</actionMapping>
+            <outputActionMapping>http://eucalyptus.ucsb.edu/EucalyptusNC/ncCancelBundleTaskResponse</outputActionMapping>
+        </operation>
+        <operation name="ncBundleRestartInstance" mep="http://www.w3.org/ns/wsdl/in-out" namespace="http://eucalyptus.ucsb.edu/">
+            <actionMapping>EucalyptusNC#ncBundleRestartInstance</actionMapping>
+            <outputActionMapping>http://eucalyptus.ucsb.edu/EucalyptusNC/ncBundleRestartInstanceResponse</outputActionMapping>
+        </operation>
+        <operation name="ncBundleInstance" mep="http://www.w3.org/ns/wsdl/in-out" namespace="http://eucalyptus.ucsb.edu/">
+            <actionMapping>EucalyptusNC#ncBundleInstance</actionMapping>
+            <outputActionMapping>http://eucalyptus.ucsb.edu/EucalyptusNC/ncBundleInstanceResponse</outputActionMapping>
+        </operation>
+        <operation name="ncTerminateInstance" mep="http://www.w3.org/ns/wsdl/in-out" namespace="http://eucalyptus.ucsb.edu/">
+            <actionMapping>EucalyptusNC#ncTerminateInstance</actionMapping>
+            <outputActionMapping>http://eucalyptus.ucsb.edu/EucalyptusNC/ncTerminateInstanceResponse</outputActionMapping>
+        </operation>
+        <operation name="ncAssignAddress" mep="http://www.w3.org/ns/wsdl/in-out" namespace="http://eucalyptus.ucsb.edu/">
+            <actionMapping>EucalyptusNC#ncAssignAddress</actionMapping>
+            <outputActionMapping>http://eucalyptus.ucsb.edu/EucalyptusNC/ncAssignAddressResponse</outputActionMapping>
+        </operation>
+        <operation name="ncStartNetwork" mep="http://www.w3.org/ns/wsdl/in-out" namespace="http://eucalyptus.ucsb.edu/">
+            <actionMapping>EucalyptusNC#ncStartNetwork</actionMapping>
+            <outputActionMapping>http://eucalyptus.ucsb.edu/EucalyptusNC/ncStartNetworkResponse</outputActionMapping>
+        </operation>
+    </service>
+</serviceGroup>

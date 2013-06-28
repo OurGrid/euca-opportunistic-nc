@@ -1,0 +1,13 @@
+Manifest-Version: 1.0
+Archiver-Version: Plexus Archiver
+Created-By: Apache Maven
+Built-By: sagara
+Build-Jdk: 1.6.0_22
+Specification-Title: Apache Axis2 - SOAP Monitor Servlet
+Specification-Version: 1.6.2
+Specification-Vendor: The Apache Software Foundation
+Implementation-Title: Apache Axis2 - SOAP Monitor Servlet
+Implementation-Version: 1.6.2
+Implementation-Vendor-Id: org.apache.axis2
+Implementation-Vendor: The Apache Software Foundation
+

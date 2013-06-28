@@ -1,0 +1,12 @@
+#!/bin/sh
+
+check_idle() {
+  while [ TRUE ]; do
+    CURRENT_DATE=$(date +%s)
+    IDLE_TIME=$(/etc/eucalyptus/bin/xprintidle)
+    echo "$CURRENT_DATE;$IDLE_TIME" > /etc/eucalyptus/idleness
+    sleep 30
+  done
+}
+
+check_idle &
