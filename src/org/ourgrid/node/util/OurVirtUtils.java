@@ -12,8 +12,6 @@ import org.ourgrid.virt.model.HypervisorType;
 import org.ourgrid.virt.model.VirtualMachineConstants;
 import org.ourgrid.virt.model.VirtualMachineStatus;
 
-import edu.ucsb.eucalyptus.InstanceType;
-import edu.ucsb.eucalyptus.NcRebootInstanceType;
 import edu.ucsb.eucalyptus.NcRunInstanceType;
 import edu.ucsb.eucalyptus.VirtualMachineType;
 
@@ -30,6 +28,10 @@ public class OurVirtUtils {
 		System.setProperty(NodeProperties.VBOX_HOME,"/usr/lib/virtualbox/");
 		OURVIRT = new OurVirt();
 	} 
+	
+	public static void setOurVirt(OurVirt ourvirt) {
+		OURVIRT = ourvirt;
+	}
 	
 	public static void runInstance(NcRunInstanceType instanceRequest, 
 			VBR vbr, Properties properties) throws Exception {

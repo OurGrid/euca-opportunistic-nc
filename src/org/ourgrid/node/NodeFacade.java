@@ -64,16 +64,12 @@ public class NodeFacade implements IdlenessListener {
 	private LinuxXSessionIdlenessDetector idlenessDetector;
 	private Executor threadPool = Executors.newFixedThreadPool(10);
 
-	public NodeFacade() {
+	
+	public NodeFacade(Properties properties) {
 		try {
-			this.properties = new Properties();
-			this.properties.load(getClass().getClassLoader().getResourceAsStream(
-					"../conf/euca.conf"));
+			this.properties = properties;
 			this.resourceUtils = new ResourcesInfoGatherer(properties);
 //			OurVirtUtils.setVBoxHome(properties);
-		} catch (IOException e) {
-			LOGGER.error("Error while loading properties file.", e);
-			throw new RuntimeException(e);
 		} catch (SigarException e) {
 			LOGGER.error("Error while retrieving machine resources info.", e);
 			throw new RuntimeException(e);
@@ -83,6 +79,22 @@ public class NodeFacade implements IdlenessListener {
 		this.idlenessDetector.addListener(this);
 		this.idlenessDetector.init();
 	}
+	
+	private NodeFacade() {
+		this(loadProperties());
+	}
+
+	private static Properties loadProperties() {
+		try {
+			Properties properties = new Properties();
+			properties.load(NodeFacade.class.getClassLoader().getResourceAsStream(
+					"../conf/euca.conf"));
+			return properties;
+		} catch (IOException e) {
+			LOGGER.error("Error while loading properties file.", e);
+			throw new RuntimeException(e);
+		}
+	}
 
 	public static NodeFacade getInstance() {
 		if (instance == null) {
@@ -91,12 +103,15 @@ public class NodeFacade implements IdlenessListener {
 		return instance;
 	}
 
+	void setInstanceRepository(InstanceRepository iRep) {
+		instanceRepository = iRep;
+	}
+	
 	private void checkNodeControllerAvailable() {
 		if (!idlenessDetector.isIdle()) {
 			throw new IllegalStateException("The node controller is not available.");
 		}
 	}
-
 
 	private InstanceType[] getRunningInstances() {
 		return instanceRepository.getInstances().toArray(new InstanceType[]{});
@@ -187,6 +202,8 @@ public class NodeFacade implements IdlenessListener {
 		
 		LOGGER.info("Terminating Instance [" + terminateRequest.getInstanceId() + "].");
 		
+		checkInstanceExists(terminateRequest.getInstanceId());
+		
 		terminateInstance(terminateRequest.getInstanceId());
 		
 		terminateInstance.setUserId(terminateRequest.getUserId());
@@ -196,8 +213,14 @@ public class NodeFacade implements IdlenessListener {
 		terminateInstance.setShutdownState("14");
 		terminateInstance.setPreviousState("14");
 
-		terminateInstanceResponse .setNcTerminateInstanceResponse(terminateInstance);
+		terminateInstanceResponse.setNcTerminateInstanceResponse(terminateInstance);
 		return terminateInstanceResponse;
+	}
+
+	private void checkInstanceExists(String instanceId) {
+		if (instanceRepository.getInstance(instanceId) == null) {
+			throw new IllegalArgumentException("Instance " + instanceId + " does not exist.");
+		}
 	}
 
 	private static String getXMLString(String str) {
