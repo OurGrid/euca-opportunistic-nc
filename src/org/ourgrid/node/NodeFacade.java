@@ -371,6 +371,8 @@ public class NodeFacade implements IdlenessListener {
 		
 		LOGGER.info("Rebooting Instance [" + rebootRequest.getInstanceId() + "].");
 		
+		checkInstanceExists(rebootRequest.getInstanceId());
+		
 		rebootInstance.setUserId(rebootRequest.getUserId());
 		rebootInstance.setStatus(true);
 		//TODO

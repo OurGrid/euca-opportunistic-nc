@@ -10,7 +10,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.ourgrid.node.model.InstanceRepository;
 import org.ourgrid.node.util.NodeProperties;
 import org.ourgrid.node.util.OurVirtUtils;
 import org.ourgrid.virt.OurVirt;
@@ -30,9 +29,6 @@ public class TestNcTerminateInstance {
 	private OurVirt ourvirtMock = Mockito.mock(OurVirt.class);
 	private Properties properties;
 	private boolean idlenessEnabled = false;
-	private static final String INSTANCE_ID = "001"; 
-	private static final String USER_ID = "user001";
-	private static final String VDI_EXT = ".vdi";
 	
 	@Before
 	public void init() throws FileNotFoundException, IOException {
@@ -49,8 +45,10 @@ public class TestNcTerminateInstance {
 		idlenessEnabled = true;
 		init();
 		
+		InstanceType instance = TestUtils.addInstanceToRepository(facade);
+		
 		NcTerminateInstance termInstanceReq = createTermInstanceRequest(
-				INSTANCE_ID, USER_ID);
+				instance.getInstanceId(), instance.getUserId());
 		
 		facade.terminateInstance(termInstanceReq);
 		
@@ -60,7 +58,7 @@ public class TestNcTerminateInstance {
 	public void testInexistentInstance() throws Exception {
 		
 		NcTerminateInstance termInstanceReq = createTermInstanceRequest(
-				INSTANCE_ID, USER_ID);
+				"", "");
 		
 		facade.terminateInstance(termInstanceReq);				
 	}
@@ -68,13 +66,13 @@ public class TestNcTerminateInstance {
 	@Test
 	public void testInexistentCloneFile() throws Exception {
 		
-		addInstanceToRepository(INSTANCE_ID, USER_ID);
+		InstanceType instance = TestUtils.addInstanceToRepository(facade);
 		
 		NcTerminateInstance termInstanceReq = createTermInstanceRequest(
-				INSTANCE_ID, USER_ID);
+				instance.getInstanceId(), instance.getUserId());
 		
 		String cloneFilePath = properties.getProperty(NodeProperties.CLONEROOT) +
-				File.separator + INSTANCE_ID + VDI_EXT;
+				File.separator + instance.getInstanceId() + TestUtils.VDI_EXT;
 		
 		File cloneFile = new File(cloneFilePath);
 		
@@ -85,12 +83,14 @@ public class TestNcTerminateInstance {
 			}
 		}
 		
-		Mockito.when(ourvirtMock.status(HypervisorType.VBOXSDK, 
-				INSTANCE_ID)).thenReturn(VirtualMachineStatus.RUNNING);
+		Mockito.when(ourvirtMock.status(Mockito.any(HypervisorType.class), 
+				Mockito.eq(instance.getInstanceId()))).thenReturn(
+						VirtualMachineStatus.RUNNING);
 		
 		facade.terminateInstance(termInstanceReq);
 		
-		Mockito.verify(ourvirtMock).destroy(HypervisorType.VBOXSDK, INSTANCE_ID);
+		Mockito.verify(ourvirtMock).destroy(Mockito.any(HypervisorType.class), 
+				Mockito.eq(instance.getInstanceId()));
 		
 		Assert.assertFalse(cloneFile.exists());
 		
@@ -100,13 +100,14 @@ public class TestNcTerminateInstance {
 	@Test
 	public void testCloneFileDeleted() throws Exception {
 		
-		addInstanceToRepository(INSTANCE_ID, USER_ID);
+
+		InstanceType instance = TestUtils.addInstanceToRepository(facade);
 		
 		NcTerminateInstance termInstanceReq = createTermInstanceRequest(
-				INSTANCE_ID, USER_ID);
+				instance.getInstanceId(), instance.getUserId());
 		
 		String cloneFilePath = properties.getProperty(NodeProperties.CLONEROOT) +
-				File.separator + INSTANCE_ID + VDI_EXT;
+				File.separator + instance.getInstanceId() + TestUtils.VDI_EXT;
 		
 		File cloneFile = new File(cloneFilePath);
 		
@@ -115,12 +116,13 @@ public class TestNcTerminateInstance {
 					cloneFilePath + " for test.");
 		}
 		
-		Mockito.when(ourvirtMock.status(HypervisorType.VBOXSDK, 
-				INSTANCE_ID)).thenReturn(VirtualMachineStatus.RUNNING);
+		Mockito.when(ourvirtMock.status(Mockito.any(HypervisorType.class), 
+				Mockito.eq(instance.getInstanceId()))).thenReturn(VirtualMachineStatus.RUNNING);
 		
 		facade.terminateInstance(termInstanceReq);
 		
-		Mockito.verify(ourvirtMock).destroy(HypervisorType.VBOXSDK, INSTANCE_ID);
+		Mockito.verify(ourvirtMock).destroy(Mockito.any(HypervisorType.class), 
+				Mockito.eq(instance.getInstanceId()));
 		
 		Assert.assertFalse(cloneFile.exists());
 		
@@ -130,51 +132,57 @@ public class TestNcTerminateInstance {
 	@Test
 	public void testNotRegisteredVM() throws Exception {
 		
-		addInstanceToRepository(INSTANCE_ID, USER_ID);
+		InstanceType instance = TestUtils.addInstanceToRepository(facade);
 		
 		NcTerminateInstance termInstanceReq = createTermInstanceRequest(
-				INSTANCE_ID, USER_ID);
+				instance.getInstanceId(), instance.getUserId());
 		
-		Mockito.when(ourvirtMock.status(HypervisorType.VBOXSDK, 
-				INSTANCE_ID)).thenReturn(VirtualMachineStatus.NOT_REGISTERED);
+		Mockito.when(ourvirtMock.status(Mockito.any(HypervisorType.class), 
+				Mockito.eq(instance.getInstanceId()))).thenReturn(
+						VirtualMachineStatus.NOT_REGISTERED);
 
 		facade.terminateInstance(termInstanceReq);
 		
-		Mockito.verify(ourvirtMock).register(INSTANCE_ID, 
+		Mockito.verify(ourvirtMock).register(instance.getInstanceId(), 
 				new HashMap<String, String>());
-		Mockito.verify(ourvirtMock).destroy(HypervisorType.VBOXSDK, INSTANCE_ID);
+		Mockito.verify(ourvirtMock).destroy(Mockito.any(HypervisorType.class), 
+				Mockito.eq(instance.getInstanceId()));
 	}
 	
 	@Test
 	public void testNotCreatedVM() throws Exception {
 		
-		addInstanceToRepository(INSTANCE_ID, USER_ID);
+		InstanceType instance = TestUtils.addInstanceToRepository(facade);
 		
 		NcTerminateInstance termInstanceReq = createTermInstanceRequest(
-				INSTANCE_ID, USER_ID);
+				instance.getInstanceId(), instance.getUserId());
 		
-		Mockito.when(ourvirtMock.status(HypervisorType.VBOXSDK, 
-				INSTANCE_ID)).thenReturn(VirtualMachineStatus.NOT_CREATED);
+		Mockito.when(ourvirtMock.status(Mockito.any(HypervisorType.class), 
+				Mockito.eq(instance.getInstanceId()))).thenReturn(
+						VirtualMachineStatus.NOT_CREATED);
 
 		facade.terminateInstance(termInstanceReq);
 		
-		Mockito.verify(ourvirtMock).destroy(HypervisorType.VBOXSDK, INSTANCE_ID);
+		Mockito.verify(ourvirtMock).destroy(Mockito.any(HypervisorType.class), 
+				Mockito.eq(instance.getInstanceId()));
 	}
 	
 	@Test
 	public void testPoweredOffVM() throws Exception {
 		
-		addInstanceToRepository(INSTANCE_ID, USER_ID);
+		InstanceType instance = TestUtils.addInstanceToRepository(facade);
 		
 		NcTerminateInstance termInstanceReq = createTermInstanceRequest(
-				INSTANCE_ID, USER_ID);
+				instance.getInstanceId(), instance.getUserId());
 		
-		Mockito.when(ourvirtMock.status(HypervisorType.VBOXSDK, 
-				INSTANCE_ID)).thenReturn(VirtualMachineStatus.POWERED_OFF);
+		Mockito.when(ourvirtMock.status(Mockito.any(HypervisorType.class), 
+				Mockito.eq(instance.getInstanceId()))).thenReturn(
+						VirtualMachineStatus.POWERED_OFF);
 
 		facade.terminateInstance(termInstanceReq);
 		
-		Mockito.verify(ourvirtMock).destroy(HypervisorType.VBOXSDK, INSTANCE_ID);
+		Mockito.verify(ourvirtMock).destroy(Mockito.any(HypervisorType.class), 
+				Mockito.eq(instance.getInstanceId()));
 	}
 
 	
@@ -182,30 +190,33 @@ public class TestNcTerminateInstance {
 	@Test
 	public void testMainFlow() throws Exception {
 		
-		addInstanceToRepository(INSTANCE_ID, USER_ID);
+		InstanceType instance = TestUtils.addInstanceToRepository(facade);
 		
 		NcTerminateInstance termInstanceReq = createTermInstanceRequest(
-				INSTANCE_ID, USER_ID);
+				instance.getInstanceId(), instance.getUserId());
 		
-		Mockito.when(ourvirtMock.status(HypervisorType.VBOXSDK, 
-				INSTANCE_ID)).thenReturn(VirtualMachineStatus.RUNNING);
+		Mockito.when(ourvirtMock.status(Mockito.any(HypervisorType.class), 
+				Mockito.eq(instance.getInstanceId()))).thenReturn(
+						VirtualMachineStatus.RUNNING);
 
 		NcTerminateInstanceResponse termInstanceResponse = 
 				facade.terminateInstance(termInstanceReq);
 		
-		Mockito.verify(ourvirtMock).destroy(HypervisorType.VBOXSDK, INSTANCE_ID);
+		Mockito.verify(ourvirtMock).destroy(Mockito.any(HypervisorType.class), 
+				Mockito.eq(instance.getInstanceId()));
 		
 		NcTerminateInstanceResponseType termInstanceRespType = 
 				termInstanceResponse.getNcTerminateInstanceResponse();
 		
 		Assert.assertTrue(termInstanceRespType.getInstanceId().equals(
-				INSTANCE_ID));
+				instance.getInstanceId()));
 		Assert.assertTrue(termInstanceRespType.getUserId().equals(
-				USER_ID));
+				instance.getUserId()));
 				
 	}
 	
-	private NcTerminateInstance createTermInstanceRequest(String instanceId, String userId) {
+	private NcTerminateInstance createTermInstanceRequest(String instanceId, 
+			String userId) {
 		NcTerminateInstanceType termInstanceType = new NcTerminateInstanceType();
 		termInstanceType.setInstanceId(instanceId);
 		termInstanceType.setUserId(userId);
@@ -215,14 +226,4 @@ public class TestNcTerminateInstance {
 		return termInstanceReq;
 	}
 	
-	private void addInstanceToRepository(String instanceId, String userId) {
-		InstanceType instance = new InstanceType();
-		instance.setInstanceId(instanceId);
-		instance.setUserId(userId);
-		
-		InstanceRepository iRep = new InstanceRepository();
-		iRep.addInstance(instance);
-		
-		facade.setInstanceRepository(iRep);
-	}
 }
