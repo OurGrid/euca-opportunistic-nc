@@ -108,19 +108,19 @@ public class OurVirtUtils {
 		VirtualMachineStatus vmStatus = OURVIRT.status(HypervisorType.VBOXSDK, 
 				instanceId);
 		
-		if (vmStatus.equals(VirtualMachineStatus.NOT_CREATED)) {
-			OURVIRT.create(HypervisorType.VBOXSDK, instanceId);
-		} else if (! vmStatus.equals(VirtualMachineStatus.POWERED_OFF)){
-			if (vmStatus.equals(VirtualMachineStatus.NOT_REGISTERED)) {
+		while (! vmStatus.equals(VirtualMachineStatus.POWERED_OFF)) {
+			
+			if (vmStatus.equals(VirtualMachineStatus.NOT_CREATED)) {
+				throw new IllegalStateException("Could not reboot instance [" + 
+						instanceId + "] " + "because machine state is NOT CREATED. " +
+						"To fix this, run terminateInstance and then runInstance " +
+						"commands.");
+			} else if (vmStatus.equals(VirtualMachineStatus.NOT_REGISTERED)) {
 				OURVIRT.register(instanceId, new HashMap<String, String>());
 			} 
 			OURVIRT.stop(HypervisorType.VBOXSDK, instanceId);
-		}  
-		
-		vmStatus = OURVIRT.status(HypervisorType.VBOXSDK, instanceId);
-		
-		//TODO Implement timeout -- get property from euca.conf file
-		while (! vmStatus.equals(VirtualMachineStatus.POWERED_OFF)) {
+			
+			//TODO - Re-think this waiting process
 			Thread.sleep(1000);
 			vmStatus = OURVIRT.status(HypervisorType.VBOXSDK, instanceId);
 		}

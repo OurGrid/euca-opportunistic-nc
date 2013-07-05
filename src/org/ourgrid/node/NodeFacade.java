@@ -373,12 +373,11 @@ public class NodeFacade implements IdlenessListener {
 		
 		checkInstanceExists(rebootRequest.getInstanceId());
 		
-		rebootInstance.setUserId(rebootRequest.getUserId());
+//		rebootInstance.set
+//		rebootInstance.setUserId(rebootRequest.getUserId());
 		rebootInstance.setStatus(true);
 		//TODO
 		rebootInstance.set_return(true); 
-//		rebootInstance.setShutdownState("14");
-//		rebootInstance.setPreviousState("14");
 		
 		rebootInstanceResponse.setNcRebootInstanceResponse(rebootInstance);
 
