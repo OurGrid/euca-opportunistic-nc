@@ -55,6 +55,8 @@ import edu.ucsb.eucalyptus.NetConfigType;
 
 public class NodeFacade implements IdlenessListener {
 
+	private static final String SHUTDOWN_STATE = "0";
+	private static final String PREVIOUS_STATE = "0";
 	private final static Logger LOGGER = Logger.getLogger(NodeFacade.class);
 	private static NodeFacade instance = null;
 	
@@ -206,12 +208,16 @@ public class NodeFacade implements IdlenessListener {
 		
 		terminateInstance(terminateRequest.getInstanceId());
 		
+		//Set standard output fields
+		terminateInstance.set_return(true);
+		terminateInstance.setCorrelationId(terminateRequest.getCorrelationId());
 		terminateInstance.setUserId(terminateRequest.getUserId());
+		
+		//Set operation-specific output fields
 		terminateInstance.setInstanceId(terminateRequest.getInstanceId());
-		//TODO
-		terminateInstance.set_return(true); 
-		terminateInstance.setShutdownState("14");
-		terminateInstance.setPreviousState("14");
+		
+		terminateInstance.setShutdownState(SHUTDOWN_STATE);
+		terminateInstance.setPreviousState(PREVIOUS_STATE);
 
 		terminateInstanceResponse.setNcTerminateInstanceResponse(terminateInstance);
 		return terminateInstanceResponse;
@@ -315,8 +321,15 @@ public class NodeFacade implements IdlenessListener {
 		NcAssignAddressType assignRequest = ncAssignAddress.getNcAssignAddress();
 				
 		LOGGER.info("Assigning address for instance [" + assignRequest.getInstanceId() + "].");
-				
+		
+		checkInstanceExists(assignRequest.getInstanceId());
+		
+		//Set standard output fields
+		assignAddressResponse.set_return(true);
+		assignAddressResponse.setCorrelationId(assignRequest.getCorrelationId());
 		assignAddressResponse.setUserId(assignRequest.getUserId());
+		
+		//Set operation-specific output fields
 		assignAddressResponse.setStatusMessage(assignRequest.getStatusMessage());
 
 		try {
@@ -328,7 +341,6 @@ public class NodeFacade implements IdlenessListener {
 			throw new RuntimeException(e);
 		}
 
-		assignAddressResponse.set_return(true);
 		response.setNcAssignAddressResponse(assignAddressResponse);
 		return response;
 	}
@@ -373,11 +385,13 @@ public class NodeFacade implements IdlenessListener {
 		
 		checkInstanceExists(rebootRequest.getInstanceId());
 		
-//		rebootInstance.set
-//		rebootInstance.setUserId(rebootRequest.getUserId());
-		rebootInstance.setStatus(true);
-		//TODO
+		//Set standard output fields
 		rebootInstance.set_return(true); 
+		rebootInstance.setUserId(rebootRequest.getUserId());
+		rebootInstance.setCorrelationId(rebootRequest.getCorrelationId());
+
+		//Set operation-specific output fields
+		rebootInstance.setStatus(true);
 		
 		rebootInstanceResponse.setNcRebootInstanceResponse(rebootInstance);
 
@@ -394,7 +408,6 @@ public class NodeFacade implements IdlenessListener {
 							getInstance(rebootRequest.getInstanceId());
 					OurVirtUtils.rebootInstance(instance.getInstanceId(), 
 							instance.getImageId(), properties);
-//					instance.setStateName(InstanceRepository.EXTANT_STATE);
 				} catch (Exception e) {
 					throw new RuntimeException(e);
 				}

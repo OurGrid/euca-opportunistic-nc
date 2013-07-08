@@ -139,10 +139,25 @@ public class OurVirtUtils {
 	public static void assignAddress(String instanceId, String publicIp) throws Exception {
 		VirtualMachineStatus vmStatus = OURVIRT.status(HypervisorType.VBOXSDK, instanceId);
 		
-		if (vmStatus.equals(VirtualMachineStatus.NOT_REGISTERED)) {
+		if (vmStatus.equals(VirtualMachineStatus.NOT_CREATED)) {
+			throw new IllegalStateException(
+					"Could not assign address for instance ["
+							+ instanceId
+							+ "] "
+							+ "because machine state is NOT CREATED. "
+							+ "To fix this, run terminateInstance and then runInstance "
+							+ "commands.");
+		} else if (vmStatus.equals(VirtualMachineStatus.POWERED_OFF)) {
+			throw new IllegalStateException(
+					"Could not assign address for instance ["
+							+ instanceId
+							+ "] "
+							+ "because machine state is POWERED OFF. "
+							+ "To fix this, run runInstance command.");
+		} else if (vmStatus.equals(VirtualMachineStatus.NOT_REGISTERED)) {
 			OURVIRT.register(instanceId, new HashMap<String, String>());
 		}
-		
+			
 		OURVIRT.setProperty(HypervisorType.VBOXSDK, instanceId, 
 				VirtualMachineConstants.IP, publicIp);
 	}
