@@ -104,8 +104,13 @@ public class NodeFacade implements IdlenessListener {
 		}
 		return instance;
 	}
+	
+	
+	public InstanceRepository getInstanceRepository() {
+		return instanceRepository;
+	}
 
-	void setInstanceRepository(InstanceRepository iRep) {
+	public void setInstanceRepository(InstanceRepository iRep) {
 		instanceRepository = iRep;
 	}
 	
@@ -169,9 +174,15 @@ public class NodeFacade implements IdlenessListener {
 		NcDescribeInstancesResponse response = new NcDescribeInstancesResponse();
 		NcDescribeInstancesType describeInstanceRequest = ncDescribeInstances.getNcDescribeInstances();
 		NcDescribeInstancesResponseType iResponseType = new NcDescribeInstancesResponseType();
-		iResponseType.setInstances(getRunningInstances());
-		iResponseType.setUserId(describeInstanceRequest.getUserId());
+
+		//Set standard output fields
 		iResponseType.set_return(true);
+		iResponseType.setCorrelationId(describeInstanceRequest.getCorrelationId());
+		iResponseType.setUserId(describeInstanceRequest.getUserId());
+		
+		//Set operation-specific output fields
+		iResponseType.setInstances(getRunningInstances());
+		
 		response.setNcDescribeInstancesResponse(iResponseType);
 		return response;
 	}
@@ -356,11 +367,13 @@ public class NodeFacade implements IdlenessListener {
 
 		LOGGER.info("Starting machine network.");
 		
-		startNetworkResponse.setUserId(startNetRequest.getUserId());
-		startNetworkResponse.setStatusMessage(startNetRequest.getStatusMessage());
-		//TODO
 		startNetworkResponse.set_return(true);
+		startNetworkResponse.setUserId(startNetRequest.getUserId());
+		startNetworkResponse.setCorrelationId(startNetRequest.getCorrelationId());
+		
+		startNetworkResponse.setStatusMessage("0");
 		startNetworkResponse.setNetworkStatus("SUCCESS");
+		//TODO
 		response.setNcStartNetworkResponse(startNetworkResponse);
 		return response;
 	}

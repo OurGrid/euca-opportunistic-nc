@@ -14,19 +14,23 @@ public class TestUtils {
 	public static final String USER_ID = "user001";
 	public static final String VDI_EXT = ".vdi";
 	
-			
-	
 	public static InstanceType addInstanceToRepository(NodeFacade facade) {
 		InstanceType instance = new InstanceType();
 		instance.setInstanceId(String.valueOf(++instanceId));
 		instance.setUserId(String.valueOf(userId));
 				
-		InstanceRepository iRep = new InstanceRepository();
+		InstanceRepository iRep = facade.getInstanceRepository();
 		iRep.addInstance(instance);
-		
 		facade.setInstanceRepository(iRep);
 		
 		return instance;
 	}
-
+	
+	public static void removeInstanceFromRepository(InstanceType instance, 
+			NodeFacade facade) {
+		InstanceRepository iRep = facade.getInstanceRepository();
+		iRep.removeInstance(instance.getInstanceId());
+		facade.setInstanceRepository(iRep);
+		
+	}
 }
