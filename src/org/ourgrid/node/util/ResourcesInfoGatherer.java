@@ -12,21 +12,34 @@ import org.ourgrid.node.model.Resources;
 
 import edu.ucsb.eucalyptus.InstanceType;
 
-//TODO Change class name. Ideas: ResourcesInfoGatherer, ResourceInfoUtils
 public class ResourcesInfoGatherer {
 	
-	private static final double MEGA = 1024*1024; 
+	public static final double MEGA = 1024*1024; 
 	
 	private Sigar sigarUtils;
 	private CpuInfo cpuInfo;
 	private FileSystemUsage fileSysUsage;
 	private Mem memory;
 	
-	private String imageCloneRootDir;
+	private boolean mocked = false;
+	
+	private static String imageCloneRootDir;
+	public static String ISCSI_IQN;
+	public static String PUBLIC_SUBNETS = "none";
+	public static String NODE_STATUS_OK = "OK";
 	
 	public ResourcesInfoGatherer(Properties properties) throws SigarException {
-		imageCloneRootDir = properties.getProperty("image.clone.root");
+		imageCloneRootDir = properties.getProperty(NodeProperties.CLONEROOT);
+		ISCSI_IQN = properties.getProperty(NodeProperties.ISCSI_IQN);
 		reloadSigarInfo();
+	}
+	
+	public ResourcesInfoGatherer(Properties properties, CpuInfo cpuInfo, 
+			FileSystemUsage fileSysUsage, Mem mem) throws SigarException {
+		imageCloneRootDir = properties.getProperty(NodeProperties.CLONEROOT);
+		ISCSI_IQN = properties.getProperty(NodeProperties.ISCSI_IQN);
+		reloadSigarInfo(cpuInfo, fileSysUsage, mem);
+		mocked = true;
 	}
 	
 	private void reloadSigarInfo() throws SigarException {
@@ -40,12 +53,19 @@ public class ResourcesInfoGatherer {
 		}
 	}
 	
+	private void reloadSigarInfo(CpuInfo cpuI, FileSystemUsage fSUsage, Mem mem)
+			throws SigarException {
+		cpuInfo = cpuI;
+		fileSysUsage = fSUsage;
+		memory = mem;
+	}
+	
 	private int getAvailMem() {
 		return (int)(memory.getActualFree()/MEGA);
 	}
 	
 	public int getTotalMem() {
-		return (int)(memory.getRam());
+		return (int)(memory.getRam()/MEGA);
 	}
 	
 	private int getAvailDiskSpace() {
@@ -61,7 +81,11 @@ public class ResourcesInfoGatherer {
 	}
 	
 	public Resources describeAvailable(InstanceRepository instanceRepository) throws Exception {
-		reloadSigarInfo();
+		if (mocked) {
+			reloadSigarInfo(cpuInfo, fileSysUsage, memory);
+		} else {
+			reloadSigarInfo();
+		}
 		int availCores = getTotalNumCores();
 		int availMemory = getTotalMem();
 		int availDiskSpace = getTotalDiskSpace();
@@ -78,7 +102,7 @@ public class ResourcesInfoGatherer {
 		int actualAvailDiskSpace = getAvailDiskSpace();
 		
 		Resources available = new Resources();
-		available.setDisk(actualAvailDiskSpace < availDiskSpace? actualAvailDiskSpace : actualAvailDiskSpace);
+		available.setDisk(actualAvailDiskSpace < availDiskSpace? actualAvailDiskSpace : availDiskSpace);
 		available.setMem(actualAvailMemory < availMemory? actualAvailMemory : availMemory);
 		available.setCores(availCores);
 		

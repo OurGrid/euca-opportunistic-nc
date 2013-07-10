@@ -67,6 +67,12 @@ public class NodeFacade implements IdlenessListener {
 	private Executor threadPool = Executors.newFixedThreadPool(10);
 
 	
+	public NodeFacade(Properties properties, 
+			ResourcesInfoGatherer resIG) throws Exception {
+		this(properties);
+		this.resourceUtils = resIG;
+	}
+	
 	public NodeFacade(Properties properties) {
 		try {
 			this.properties = properties;
@@ -135,10 +141,6 @@ public class NodeFacade implements IdlenessListener {
 		NcDescribeResourceResponseType rType = new NcDescribeResourceResponseType();
 		NcDescribeResourceType resourceRequest = ncDescribeResource.getNcDescribeResource();
 
-		rType.setMemorySizeMax(resourceUtils.getTotalMem());
-		rType.setDiskSizeMax(resourceUtils.getTotalDiskSpace());
-		rType.setNumberOfCoresMax(resourceUtils.getTotalNumCores());
-		
 		Resources available;
 		
 		try {
@@ -148,16 +150,23 @@ public class NodeFacade implements IdlenessListener {
 			throw new RuntimeException(e);
 		}
 
+		//Set standard output fields
+		rType.set_return(true);
+		rType.setCorrelationId(resourceRequest.getCorrelationId());
+		rType.setUserId(resourceRequest.getUserId());
+		
+		//Set operation-specific output fields
+		rType.setMemorySizeMax(resourceUtils.getTotalMem());
+		rType.setDiskSizeMax(resourceUtils.getTotalDiskSpace());
+		rType.setNumberOfCoresMax(resourceUtils.getTotalNumCores());
+
 		rType.setMemorySizeAvailable(available.getMem());
 		rType.setDiskSizeAvailable(available.getDisk());
 		rType.setNumberOfCoresAvailable(available.getCores());
-		rType.setUserId(resourceRequest.getUserId());
-		rType.set_return(true);
-
-		//TODO
-		rType.setIqn("iqn.1993-08.org.debian:01:247ad1c41511");
-		rType.setNodeStatus("OK");
-		rType.setPublicSubnets("none");
+		
+		rType.setIqn(ResourcesInfoGatherer.ISCSI_IQN);
+		rType.setNodeStatus(ResourcesInfoGatherer.NODE_STATUS_OK);
+		rType.setPublicSubnets(ResourcesInfoGatherer.PUBLIC_SUBNETS);
 
 		response.setNcDescribeResourceResponse(rType);
 		return response;

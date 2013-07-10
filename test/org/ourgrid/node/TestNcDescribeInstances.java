@@ -153,7 +153,7 @@ public class TestNcDescribeInstances {
 	
 	private NcDescribeInstances createDescribeInstancesRequest() {
 		NcDescribeInstancesType descInstancesType = new NcDescribeInstancesType();
-		descInstancesType.setUserId(TestUtils.USER_ID);
+		descInstancesType.setUserId(TestUtils.DEFAULT_USER_ID);
 		descInstancesType.setCorrelationId(
 				String.valueOf(TestUtils.correlationId++));
 		

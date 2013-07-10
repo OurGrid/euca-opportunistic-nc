@@ -9,6 +9,7 @@ public class NodeProperties {
 	public static final String PRIVATEKEY_ALIAS = "node.keystore.key.alias";
 	public static final String NODECERT_ALIAS = "node.keystore.cert.alias";
 	public static final String PRIVATEKEY_PASS = "node.keystore.key.password";
+	public static final String ISCSI_IQN = "iscsi.iqn";
 	public static final String NETWORK_MODE = "network.mode";
 	public static final String IDLENESS_FILE = "idleness.file";
 	public static final String IDLENESS_TIME = "idleness.time";
