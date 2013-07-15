@@ -36,6 +36,14 @@ public class OurVirtUtils {
 	public static void runInstance(NcRunInstanceType instanceRequest, 
 			VBR vbr, Properties properties) throws Exception {
 		
+		if (getStatus(instanceRequest.getInstanceId())
+				== VirtualMachineStatus.RUNNING) {
+			throw new IllegalStateException("Instance [" 
+					+ instanceRequest.getInstanceId() 
+					+ "] is already in RUNNING state. Run rebootInstance " 
+					+ "command to restart it.");
+		}
+		
 		String imagePath = WalrusUtils.getImagePath(vbr.getMachineImageId(), properties);
 		String vmName = instanceRequest.getInstanceId();
 		VirtualMachineType instanceType = instanceRequest.getInstanceType();
@@ -162,7 +170,6 @@ public class OurVirtUtils {
 				VirtualMachineConstants.IP, publicIp);
 	}
 	
-	//TODO 
 	private static VirtualMachineStatus getStatus(String instanceId) throws Exception {
 		return OURVIRT.status(HypervisorType.VBOXSDK, instanceId);
 	}

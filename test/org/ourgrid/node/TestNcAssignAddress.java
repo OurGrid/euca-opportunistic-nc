@@ -194,7 +194,7 @@ public class TestNcAssignAddress {
 		assignAddressType.setStatusMessage(STATUS_MSG);
 		assignAddressType.setPublicIp(publicIp);
 		assignAddressType.setCorrelationId(
-				String.valueOf(TestUtils.correlationId++));
+				String.valueOf(TestUtils.getNewCorrelationId()));
 
 		NcAssignAddress assignReq = new NcAssignAddress();
 		assignReq.setNcAssignAddress(assignAddressType);

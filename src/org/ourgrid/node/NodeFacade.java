@@ -266,23 +266,26 @@ public class NodeFacade implements IdlenessListener {
 				instanceRequest.getInstanceType().getName()  + " with image " + "[" + 
 				instanceRequest.getImageId() + "].");
 
-		instance.setImageId(getXMLString(instanceRequest.getImageId()));
-		instance.setKernelId(getXMLString(instanceRequest.getKernelId()));
-		instance.setRamdiskId(getXMLString(instanceRequest.getRamdiskId()));
-
+		//Build instance object		
 		instance.setUuid(instanceRequest.getUuid());
-		instance.setReservationId(instanceRequest.getReservationId());
 		instance.setInstanceId(instanceRequest.getInstanceId());
+		instance.setReservationId(instanceRequest.getReservationId());
 		instance.setUserId(instanceRequest.getUserId());
 		instance.setOwnerId(instanceRequest.getOwnerId());
 		instance.setAccountId(instanceRequest.getAccountId());
 		instance.setKeyName(instanceRequest.getKeyName());
 		instance.setInstanceType(instanceRequest.getInstanceType());
-		instance.setGroupNames(instanceRequest.getGroupNames());
+		instance.setNetParams(instanceRequest.getNetParams());
+		instance.setUserData(instanceRequest.getUserData());
 		instance.setLaunchIndex(instanceRequest.getLaunchIndex());
 		instance.setPlatform(instanceRequest.getPlatform());
-		instance.setNetParams(instanceRequest.getNetParams());
+		instance.setGroupNames(instanceRequest.getGroupNames());
+		instance.setExpiryTime(instanceRequest.getExpiryTime());
 
+		instance.setImageId(getXMLString(instanceRequest.getImageId()));
+		instance.setKernelId(getXMLString(instanceRequest.getKernelId()));
+		instance.setRamdiskId(getXMLString(instanceRequest.getRamdiskId()));
+		
 		//TODO
 		instance.setStateName(InstanceRepository.PENDING_STATE);
 		instance.setBundleTaskStateName("none");
@@ -290,12 +293,15 @@ public class NodeFacade implements IdlenessListener {
 		instance.setLaunchTime(Calendar.getInstance());
 		instance.setBlkbytes(0);
 		instance.setNetbytes(0);
-		instance.setUserData("");
 
-		runInstanceResponse.setInstance(instance);
+		//Set standard output fields
 		runInstanceResponse.set_return(true);
+		runInstanceResponse.setCorrelationId(instanceRequest.getCorrelationId());
 		runInstanceResponse.setUserId(instanceRequest.getUserId());
 
+		//Set operation-specific output fields
+		runInstanceResponse.setInstance(instance);
+		
 		instanceRepository.addInstance(instance);
 		response.setNcRunInstanceResponse(runInstanceResponse);
 
@@ -307,26 +313,36 @@ public class NodeFacade implements IdlenessListener {
 	private Runnable createStartupRunnable(final NcRunInstanceType instanceRequest) {
 		return new Runnable() {
 			public void run() {
-				LOGGER.info("Lauching instance [" + instanceRequest.getInstanceId() + "] startup thread.");
-				//TODO Restrict indentation levels in method
-				InstanceType instance = instanceRepository.getInstance(instanceRequest.getInstanceId());
+				LOGGER.info("Lauching instance [" + 
+						instanceRequest.getInstanceId() + "] startup thread.");
+				
+				checkInstanceExists(instanceRequest.getInstanceId());
+				
+				InstanceType instance = instanceRepository.getInstance(
+						instanceRequest.getInstanceId());
 				VBR vbr = VBRUtils.syncBootRecords(instanceRequest, properties);
+				
 				try {
 					OurVirtUtils.runInstance(instanceRequest, vbr, properties);
 				} catch (Exception e) {
 					LOGGER.error("Failure in startup thread for instance [" + 
 							instanceRequest.getInstanceId() + "].", e);
+					
 					try {
-						OurVirtUtils.terminateInstance(instanceRequest.getInstanceId(), properties);
+						OurVirtUtils.terminateInstance(
+								instanceRequest.getInstanceId(), properties);
 					} catch (Exception e1) {
 						LOGGER.error("Failure to terminate instance[" + 
 								instanceRequest.getInstanceId() + "].", e1);
 					}
+					
 					instance.setStateName(InstanceRepository.TEARDOWN_STATE);
 					throw new RuntimeException(e);
 				}
+				
 				instance.setStateName(InstanceRepository.EXTANT_STATE);
-				NetConfigType params = NetUtils.getParams(instanceRequest, properties);
+				NetConfigType params = NetUtils.getParams(instanceRequest, 
+						properties);
 				instance.setNetParams(params);
 			}
 		};

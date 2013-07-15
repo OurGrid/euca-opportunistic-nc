@@ -9,12 +9,14 @@ import java.util.Properties;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.ourgrid.node.model.VBR;
 import org.ourgrid.node.util.OurVirtUtils;
 import org.ourgrid.virt.OurVirt;
 import org.ourgrid.virt.model.HypervisorType;
 import org.ourgrid.virt.model.VirtualMachineStatus;
 
 import edu.ucsb.eucalyptus.InstanceType;
+import edu.ucsb.eucalyptus.NcRunInstance;
 
 /**
  * @author tarciso
@@ -37,9 +39,8 @@ public class TestOurVirtUtils {
 		facade = new NodeFacade(properties);
 	}
 	
-	
 	@Test(expected=IllegalStateException.class)
-	public void testNotCreatedInstance() throws Exception {
+	public void testRebootNotCreatedInstance() throws Exception {
 		
 		InstanceType instance = TestUtils.addInstanceToRepository(facade);
 		
@@ -108,6 +109,28 @@ public class TestOurVirtUtils {
 		
 		Mockito.verify(ourvirtMock).start(Mockito.any(HypervisorType.class), 
 				Mockito.eq(instance.getInstanceId()));
+	}
+	
+	@Test(expected=IllegalStateException.class)
+	public void testRunRunningInstance() throws Exception {
+		
+		NcRunInstance runInstanceReq = 
+				TestNcRunInstance.getNewRunInstanceRequest();
+		
+		InstanceType instance = TestUtils.addInstanceToRepository(
+				TestNcRunInstance.getInstanceFromRequest(runInstanceReq), facade);
+		
+		Mockito.when((ourvirtMock.status(Mockito.any(HypervisorType.class), 
+				Mockito.eq(instance.getInstanceId())))).thenReturn(
+						VirtualMachineStatus.RUNNING);
+		
+		VBR instVBR = new VBR();
+		instVBR.setMachineImageId(instance.getImageId());
+		instVBR.setKernelId(instance.getKernelId());
+		instVBR.setRamDiskId(instance.getRamdiskId());
+		
+		OurVirtUtils.runInstance(
+				runInstanceReq.getNcRunInstance(), instVBR, properties);
 	}
 
 }

@@ -65,7 +65,7 @@ public class ResourcesInfoGatherer {
 	}
 	
 	public int getTotalMem() {
-		return (int)(memory.getRam()/MEGA);
+		return (int)(memory.getRam());
 	}
 	
 	private int getAvailDiskSpace() {

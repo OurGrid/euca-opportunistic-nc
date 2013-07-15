@@ -81,7 +81,7 @@ public class TestNcRebootInstance {
 		rebootInstanceType.setInstanceId(instanceId);
 		rebootInstanceType.setUserId(userId);
 		rebootInstanceType.setCorrelationId(
-				String.valueOf(TestUtils.correlationId++));
+				String.valueOf(TestUtils.getNewCorrelationId()));
 		
 		NcRebootInstance rebootInstanceReq = new NcRebootInstance();
 		rebootInstanceReq.setNcRebootInstance(rebootInstanceType);

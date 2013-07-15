@@ -226,7 +226,7 @@ public class TestNcTerminateInstance {
 		termInstanceType.setInstanceId(instanceId);
 		termInstanceType.setUserId(userId);
 		termInstanceType.setCorrelationId(
-				String.valueOf(TestUtils.correlationId++));
+				String.valueOf(TestUtils.getNewCorrelationId()));
 
 		NcTerminateInstance terminateReq = new NcTerminateInstance();
 		terminateReq.setNcTerminateInstance(termInstanceType);

@@ -38,10 +38,6 @@ public class TestNcDescribeResource {
 	private static final long AV_MACHINE_MEM = Math.round(3400*MEGA);
 	private static final long AV_MACHINE_DISK = Math.round(450*MEGA);
 	
-	private static final int DEF_INST_NUM_CORES = 2;
-	private static final int DEF_INST_MEM = 1024;
-	private static final int DEF_INST_DISK = 100;
-	
 	@Before
 	public void init() throws Exception {
 		OurVirtUtils.setOurVirt(ourvirtMock);
@@ -78,7 +74,7 @@ public class TestNcDescribeResource {
 		Assert.assertTrue(response.get_return());
 		Assert.assertEquals(response.getCorrelationId(), 
 				descRes.getNcDescribeResource().getCorrelationId());
-		Assert.assertEquals(response.getUserId(), 
+		Assert.assertEquals(response.getUserId(),  	
 				descRes.getNcDescribeResource().getUserId());
 		
 		Assert.assertTrue(response.getDiskSizeMax() == TOTAL_MACHINE_DISK/MEGA);
@@ -117,17 +113,17 @@ public class TestNcDescribeResource {
 		Assert.assertTrue(response.getNumberOfCoresAvailable() 
 				== TOTAL_MACHINE_NUM_CORES);
 				
-		TestUtils.addInstanceToRepository(DEF_INST_NUM_CORES,
-				DEF_INST_MEM, DEF_INST_DISK, facade);
+		TestUtils.addInstanceToRepository(TestUtils.DEF_INST_NUM_CORES,
+				TestUtils.DEF_INST_MEM, TestUtils.DEF_INST_DISK, facade);
 		
 		response = facade.describeResource(descRes).getNcDescribeResourceResponse();
 		
 		Assert.assertTrue(response.getDiskSizeAvailable() 
-				== TOTAL_MACHINE_DISK/MEGA - DEF_INST_DISK);
+				== TOTAL_MACHINE_DISK/MEGA - TestUtils.DEF_INST_DISK);
 		Assert.assertTrue(response.getMemorySizeAvailable() 
-				== TOTAL_MACHINE_MEM/MEGA - DEF_INST_MEM);
+				== TOTAL_MACHINE_MEM/MEGA - TestUtils.DEF_INST_MEM);
 		Assert.assertTrue(response.getNumberOfCoresAvailable() 
-				== TOTAL_MACHINE_NUM_CORES - DEF_INST_NUM_CORES);
+				== TOTAL_MACHINE_NUM_CORES - TestUtils.DEF_INST_NUM_CORES);
 		
 	}
 	
@@ -136,8 +132,10 @@ public class TestNcDescribeResource {
 		
 		NcDescribeResource descRes = createDescribeResourceRequest();
 		
-		InstanceType i1 = TestUtils.addInstanceToRepository(DEF_INST_NUM_CORES,
-				DEF_INST_MEM, DEF_INST_DISK, facade);
+		InstanceType i1 = TestUtils.addInstanceToRepository(
+				TestUtils.DEF_INST_NUM_CORES, 
+				TestUtils.DEF_INST_MEM, 
+				TestUtils.DEF_INST_DISK, facade);
 		
 		setMockReturnValues(TOTAL_MACHINE_MEM, TOTAL_MACHINE_DISK,
 				TOTAL_MACHINE_NUM_CORES, AV_MACHINE_MEM, AV_MACHINE_DISK);
@@ -146,11 +144,11 @@ public class TestNcDescribeResource {
 				facade.describeResource(descRes).getNcDescribeResourceResponse();
 		
 		Assert.assertTrue(response.getDiskSizeAvailable() 
-				== TOTAL_MACHINE_DISK/MEGA - DEF_INST_DISK);
+				== TOTAL_MACHINE_DISK/MEGA - TestUtils.DEF_INST_DISK);
 		Assert.assertTrue(response.getMemorySizeAvailable() 
-				== TOTAL_MACHINE_MEM/MEGA - DEF_INST_MEM);
+				== TOTAL_MACHINE_MEM/MEGA - TestUtils.DEF_INST_MEM);
 		Assert.assertTrue(response.getNumberOfCoresAvailable() 
-				== TOTAL_MACHINE_NUM_CORES - DEF_INST_NUM_CORES);
+				== TOTAL_MACHINE_NUM_CORES - TestUtils.DEF_INST_NUM_CORES);
 		
 		TestUtils.removeInstanceFromRepository(i1, facade);
 		
@@ -168,7 +166,7 @@ public class TestNcDescribeResource {
 		NcDescribeResourceType descResourceType = new NcDescribeResourceType();
 		descResourceType.setUserId(TestUtils.DEFAULT_USER_ID);
 		descResourceType.setCorrelationId(
-				String.valueOf(TestUtils.correlationId++));
+				String.valueOf(TestUtils.getNewCorrelationId()));
 		
 		NcDescribeResource descResource = new NcDescribeResource();
 		descResource.setNcDescribeResource(descResourceType);
