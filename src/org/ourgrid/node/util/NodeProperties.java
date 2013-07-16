@@ -14,7 +14,7 @@ public class NodeProperties {
 	public static final String IDLENESS_FILE = "idleness.file";
 	public static final String IDLENESS_TIME = "idleness.time";
 	public static final String IDLENESS_ENABLED = "idleness.enabled";
-	public static final String VBOX_HOME = "vbox.home";
+	public static final String HYPERVISOR_ENVVAR_VALUE = "hypervisor.envvar.value";
 	public static final String GUEST_USER = "guest.user";
 	public static final String GUEST_PASSWD = "guest.passwd";
 	public static final String NETWORK_TYPE = "network.type";
@@ -23,4 +23,5 @@ public class NodeProperties {
 	public static final String BRIDGED_INTERFACE = "bridged.interface";
 	public static final String START_TIMEOUT = "start.timeout";
 	public static final String PAE_ENABLED = "vm.pae.enabled";
+	public static final String HYPERVISOR_ENVVAR_NAME = "hypervisor.envvar.name";
 }

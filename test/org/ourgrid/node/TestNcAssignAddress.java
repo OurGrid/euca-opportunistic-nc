@@ -32,11 +32,11 @@ public class TestNcAssignAddress {
 	
 	@Before
 	public void init() throws FileNotFoundException, IOException {
-		OurVirtUtils.setOurVirt(ourvirtMock);
 		properties = new Properties();
 		properties.load(new FileInputStream("WebContent/WEB-INF/conf/euca.conf"));
 		properties.setProperty("idleness.enabled", String.valueOf(idlenessEnabled));
 		facade = new NodeFacade(properties);
+		OurVirtUtils.setOurVirt(ourvirtMock);
 	}
 	
 	@Test(expected=IllegalStateException.class)
@@ -88,67 +88,6 @@ public class TestNcAssignAddress {
 				Mockito.eq(VirtualMachineConstants.IP),
 				Mockito.eq(assignReq.getNcAssignAddress().getPublicIp()));
 		
-	}
-	
-	@Test
-	public void testNotCreatedInstance() throws Exception {
-		
-		InstanceType instance = TestUtils.addInstanceToRepository(facade);
-		
-		NcAssignAddress assignReq = createAssignAddressRequest(
-				instance.getInstanceId(), instance.getUserId(),
-				getPublicIp());
-		
-		Mockito.when((ourvirtMock.status(Mockito.any(HypervisorType.class), 
-				Mockito.eq(instance.getInstanceId())))).thenReturn(
-						VirtualMachineStatus.NOT_CREATED);
-		
-		try {	
-			facade.assignAddress(assignReq);
-		} catch(Exception e) {
-			System.out.println(e.getMessage());
-			
-			IllegalStateException exception = new IllegalStateException(
-					"Could not assign address for instance ["
-						+ instance.getInstanceId()
-						+ "] "
-						+ "because machine state is NOT CREATED. "
-						+ "To fix this, run terminateInstance and then runInstance "
-						+ "commands.");
-			
-			Assert.assertEquals(e.getCause().getMessage(), 
-					exception.getMessage());
-		}
-	}
-	
-	@Test
-	public void testPoweredOffInstance() throws Exception {
-		
-		InstanceType instance = TestUtils.addInstanceToRepository(facade);
-		
-		NcAssignAddress assignReq = createAssignAddressRequest(
-				instance.getInstanceId(), instance.getUserId(),
-				getPublicIp());
-		
-		Mockito.when((ourvirtMock.status(Mockito.any(HypervisorType.class), 
-				Mockito.eq(instance.getInstanceId())))).thenReturn(
-						VirtualMachineStatus.POWERED_OFF);
-		
-		try {	
-			facade.assignAddress(assignReq);
-		} catch(Exception e) {
-			System.out.println(e.getMessage());
-			
-			IllegalStateException exception = new IllegalStateException(
-					"Could not assign address for instance ["
-						+ instance.getInstanceId()
-						+ "] "
-						+ "because machine state is POWERED OFF. "
-						+ "To fix this, run runInstance command.");
-			
-			Assert.assertEquals(e.getCause().getMessage(), 
-					exception.getMessage());
-		}
 	}
 	
 	@Test

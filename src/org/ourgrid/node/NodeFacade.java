@@ -77,7 +77,7 @@ public class NodeFacade implements IdlenessListener {
 		try {
 			this.properties = properties;
 			this.resourceUtils = new ResourcesInfoGatherer(properties);
-//			OurVirtUtils.setVBoxHome(properties);
+			OurVirtUtils.setHypervisorEnvVars(properties);
 		} catch (SigarException e) {
 			LOGGER.error("Error while retrieving machine resources info.", e);
 			throw new RuntimeException(e);

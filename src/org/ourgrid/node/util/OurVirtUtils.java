@@ -19,15 +19,12 @@ public class OurVirtUtils {
 
 	private static OurVirt OURVIRT;
 	
-//	public static void setVBoxHome(Properties properties) {
-//		System.setProperty(NodeProperties.VBOX_HOME, 
-//				properties.getProperty(NodeProperties.VBOX_HOME));
-//	}
-	
-	static {
-		System.setProperty(NodeProperties.VBOX_HOME,"/usr/lib/virtualbox/");
+	public static void setHypervisorEnvVars(Properties properties) {
+		System.setProperty(
+				properties.getProperty(NodeProperties.HYPERVISOR_ENVVAR_NAME), 
+				properties.getProperty(NodeProperties.HYPERVISOR_ENVVAR_VALUE));
 		OURVIRT = new OurVirt();
-	} 
+	}
 	
 	public static void setOurVirt(OurVirt ourvirt) {
 		OURVIRT = ourvirt;
@@ -147,22 +144,7 @@ public class OurVirtUtils {
 	public static void assignAddress(String instanceId, String publicIp) throws Exception {
 		VirtualMachineStatus vmStatus = OURVIRT.status(HypervisorType.VBOXSDK, instanceId);
 		
-		if (vmStatus.equals(VirtualMachineStatus.NOT_CREATED)) {
-			throw new IllegalStateException(
-					"Could not assign address for instance ["
-							+ instanceId
-							+ "] "
-							+ "because machine state is NOT CREATED. "
-							+ "To fix this, run terminateInstance and then runInstance "
-							+ "commands.");
-		} else if (vmStatus.equals(VirtualMachineStatus.POWERED_OFF)) {
-			throw new IllegalStateException(
-					"Could not assign address for instance ["
-							+ instanceId
-							+ "] "
-							+ "because machine state is POWERED OFF. "
-							+ "To fix this, run runInstance command.");
-		} else if (vmStatus.equals(VirtualMachineStatus.NOT_REGISTERED)) {
+		if (vmStatus.equals(VirtualMachineStatus.NOT_REGISTERED)) {
 			OURVIRT.register(instanceId, new HashMap<String, String>());
 		}
 			

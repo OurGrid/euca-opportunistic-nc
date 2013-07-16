@@ -33,20 +33,20 @@ public class TestNcDescribeResource {
 	private static double MEGA = ResourcesInfoGatherer.MEGA;
 	
 	private static final int TOTAL_MACHINE_NUM_CORES = 8;
-	private static final long TOTAL_MACHINE_MEM = Math.round(4096*MEGA);
+	private static final long TOTAL_MACHINE_MEM = Math.round(4096);
 	private static final long TOTAL_MACHINE_DISK = Math.round(500*MEGA);
 	private static final long AV_MACHINE_MEM = Math.round(3400*MEGA);
 	private static final long AV_MACHINE_DISK = Math.round(450*MEGA);
 	
 	@Before
 	public void init() throws Exception {
-		OurVirtUtils.setOurVirt(ourvirtMock);
 		properties = new Properties();
 		properties.load(new FileInputStream("WebContent/WEB-INF/conf/euca.conf"));
 		properties.setProperty("idleness.enabled", String.valueOf(idlenessEnabled));
 		ResourcesInfoGatherer resIG = new ResourcesInfoGatherer(
 				properties, cpuInfoMock, fSUsageMock, memMock);
 		facade = new NodeFacade(properties, resIG);
+		OurVirtUtils.setOurVirt(ourvirtMock);
 	}
 	
 	@Test(expected=IllegalStateException.class)
@@ -78,7 +78,7 @@ public class TestNcDescribeResource {
 				descRes.getNcDescribeResource().getUserId());
 		
 		Assert.assertTrue(response.getDiskSizeMax() == TOTAL_MACHINE_DISK/MEGA);
-		Assert.assertTrue(response.getMemorySizeMax() == TOTAL_MACHINE_MEM/MEGA);
+		Assert.assertTrue(response.getMemorySizeMax() == TOTAL_MACHINE_MEM);
 		Assert.assertTrue(response.getNumberOfCoresMax() 
 				== TOTAL_MACHINE_NUM_CORES);
 		
@@ -121,7 +121,7 @@ public class TestNcDescribeResource {
 		Assert.assertTrue(response.getDiskSizeAvailable() 
 				== TOTAL_MACHINE_DISK/MEGA - TestUtils.DEF_INST_DISK);
 		Assert.assertTrue(response.getMemorySizeAvailable() 
-				== TOTAL_MACHINE_MEM/MEGA - TestUtils.DEF_INST_MEM);
+				== TOTAL_MACHINE_MEM - TestUtils.DEF_INST_MEM);
 		Assert.assertTrue(response.getNumberOfCoresAvailable() 
 				== TOTAL_MACHINE_NUM_CORES - TestUtils.DEF_INST_NUM_CORES);
 		
@@ -146,7 +146,7 @@ public class TestNcDescribeResource {
 		Assert.assertTrue(response.getDiskSizeAvailable() 
 				== TOTAL_MACHINE_DISK/MEGA - TestUtils.DEF_INST_DISK);
 		Assert.assertTrue(response.getMemorySizeAvailable() 
-				== TOTAL_MACHINE_MEM/MEGA - TestUtils.DEF_INST_MEM);
+				== TOTAL_MACHINE_MEM - TestUtils.DEF_INST_MEM);
 		Assert.assertTrue(response.getNumberOfCoresAvailable() 
 				== TOTAL_MACHINE_NUM_CORES - TestUtils.DEF_INST_NUM_CORES);
 		

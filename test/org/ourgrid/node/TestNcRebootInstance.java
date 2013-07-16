@@ -26,11 +26,11 @@ public class TestNcRebootInstance {
 	
 	@Before
 	public void init() throws FileNotFoundException, IOException {
-		OurVirtUtils.setOurVirt(ourvirtMock);
 		properties = new Properties();
 		properties.load(new FileInputStream("WebContent/WEB-INF/conf/euca.conf"));
 		properties.setProperty("idleness.enabled", String.valueOf(idlenessEnabled));
 		facade = new NodeFacade(properties);
+		OurVirtUtils.setOurVirt(ourvirtMock);
 	}
 	
 	@Test(expected=IllegalStateException.class)
