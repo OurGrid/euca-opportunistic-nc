@@ -13,6 +13,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.ourgrid.node.util.NodeProperties;
 import org.ourgrid.node.util.OurVirtUtils;
+import org.ourgrid.node.util.WalrusUtils;
 import org.ourgrid.virt.OurVirt;
 import org.ourgrid.virt.model.HypervisorType;
 import org.ourgrid.virt.model.VirtualMachineStatus;
@@ -74,7 +75,7 @@ public class TestNcTerminateInstance {
 				instance.getInstanceId(), instance.getUserId());
 
 		String cloneFilePath = properties.getProperty(NodeProperties.CLONEROOT)
-				+ File.separator + instance.getInstanceId() + TestUtils.VDI_EXT;
+				+ File.separator + instance.getInstanceId() + WalrusUtils.VDI_EXT;
 
 		File cloneFile = new File(cloneFilePath);
 
@@ -108,7 +109,7 @@ public class TestNcTerminateInstance {
 				instance.getInstanceId(), instance.getUserId());
 
 		String cloneFilePath = properties.getProperty(NodeProperties.CLONEROOT)
-				+ File.separator + instance.getInstanceId() + TestUtils.VDI_EXT;
+				+ File.separator + instance.getInstanceId() + WalrusUtils.VDI_EXT;
 
 		File cloneFile = new File(cloneFilePath);
 

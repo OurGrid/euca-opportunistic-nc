@@ -95,7 +95,7 @@ public class OurVirtUtils {
 		if (!cloneRootFile.exists()) {
 			cloneRootFile.mkdirs();
 		}
-		return cloneRoot + "/" + instanceId + ".vdi";
+		return cloneRoot + File.separator + instanceId + WalrusUtils.VDI_EXT;
 	}
 
 	public static void terminateInstance(String instanceId, Properties properties) throws Exception {

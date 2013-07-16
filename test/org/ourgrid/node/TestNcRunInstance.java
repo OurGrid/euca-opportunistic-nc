@@ -186,7 +186,11 @@ public class TestNcRunInstance {
 		VirtualMachineType vmType = TestUtils.createBasicVMType();
 		
 		runInstanceType.setInstanceType(vmType);
-		runInstanceType.setNetParams(new NetConfigType());
+		
+		NetConfigType netConfig = new NetConfigType();
+		netConfig.setPrivateMacAddress("11:22:33:44:55:66");
+		
+		runInstanceType.setNetParams(netConfig);
 		runInstanceType.setUserData(instUserData);
 		runInstanceType.setLaunchIndex(instLaunchIndex);
 		runInstanceType.setPlatform(instPlatform);

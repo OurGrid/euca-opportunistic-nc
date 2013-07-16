@@ -17,7 +17,6 @@ public class TestUtils {
 	
 	public static final String DEFAULT_INSTANCE_ID = "001"; 
 	public static final String DEFAULT_USER_ID = "user001";
-	public static final String VDI_EXT = ".vdi";
 	
 	public static final int DEF_INST_NUM_CORES = 2;
 	public static final int DEF_INST_MEM = 1024;
