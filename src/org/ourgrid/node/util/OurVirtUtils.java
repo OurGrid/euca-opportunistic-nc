@@ -21,8 +21,8 @@ public class OurVirtUtils {
 	
 	public static void setHypervisorEnvVars(Properties properties) {
 		System.setProperty(
-				properties.getProperty(NodeProperties.HYPERVISOR_ENVVAR_NAME), 
-				properties.getProperty(NodeProperties.HYPERVISOR_ENVVAR_VALUE));
+				properties.getProperty(NodeProperties.HYPERVISOR_LOCATION_NAME), 
+				properties.getProperty(NodeProperties.HYPERVISOR_LOCATION_VALUE));
 		OURVIRT = new OurVirt();
 	}
 	
@@ -113,24 +113,21 @@ public class OurVirtUtils {
 		VirtualMachineStatus vmStatus = OURVIRT.status(HypervisorType.VBOXSDK, 
 				instanceId);
 		
-		while (! vmStatus.equals(VirtualMachineStatus.POWERED_OFF)) {
-			
-			if (vmStatus.equals(VirtualMachineStatus.NOT_CREATED)) {
-				throw new IllegalStateException("Could not reboot instance [" + 
-						instanceId + "] " + "because machine state is NOT CREATED. " +
-						"To fix this, run terminateInstance and then runInstance " +
-						"commands.");
-			} else if (vmStatus.equals(VirtualMachineStatus.NOT_REGISTERED)) {
-				OURVIRT.register(instanceId, new HashMap<String, String>());
-			} 
-			OURVIRT.stop(HypervisorType.VBOXSDK, instanceId);
-			
-			//TODO - Re-think this waiting process
-			Thread.sleep(1000);
-			vmStatus = OURVIRT.status(HypervisorType.VBOXSDK, instanceId);
-		}
+		if (vmStatus.equals(VirtualMachineStatus.NOT_CREATED)) {
+			throw new IllegalStateException("Could not reboot instance [" + 
+					instanceId + "] " + "because machine state is NOT CREATED. " +
+					"To fix this, run terminateInstance and then runInstance " +
+					"commands.");
+		} else if (vmStatus.equals(VirtualMachineStatus.POWERED_OFF)) {
+			throw new IllegalStateException("Could not reboot instance [" + 
+					instanceId + "] " + "because machine state is POWERED OFF. " +
+					"To fix this, run runInstance command.");
+		} else if (vmStatus.equals(VirtualMachineStatus.NOT_REGISTERED)) {
+			OURVIRT.register(instanceId, new HashMap<String, String>());
+		} 
 		
-		OURVIRT.start(HypervisorType.VBOXSDK, instanceId);
+		OURVIRT.reboot(HypervisorType.VBOXSDK, instanceId);
+		
 	}
 
 	public static String getInstanceIP(String instanceId) {

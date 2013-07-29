@@ -8,6 +8,7 @@ import java.util.concurrent.Executors;
 
 import org.apache.log4j.Logger;
 import org.hyperic.sigar.SigarException;
+import org.ourgrid.node.idleness.IdlenessChecker;
 import org.ourgrid.node.idleness.IdlenessListener;
 import org.ourgrid.node.idleness.LinuxXSessionIdlenessDetector;
 import org.ourgrid.node.model.InstanceRepository;
@@ -35,6 +36,14 @@ import edu.ucsb.eucalyptus.NcDescribeResource;
 import edu.ucsb.eucalyptus.NcDescribeResourceResponse;
 import edu.ucsb.eucalyptus.NcDescribeResourceResponseType;
 import edu.ucsb.eucalyptus.NcDescribeResourceType;
+import edu.ucsb.eucalyptus.NcDescribeSensors;
+import edu.ucsb.eucalyptus.NcDescribeSensorsResponse;
+import edu.ucsb.eucalyptus.NcDescribeSensorsResponseType;
+import edu.ucsb.eucalyptus.NcDescribeSensorsType;
+import edu.ucsb.eucalyptus.NcPowerDown;
+import edu.ucsb.eucalyptus.NcPowerDownResponse;
+import edu.ucsb.eucalyptus.NcPowerDownResponseType;
+import edu.ucsb.eucalyptus.NcPowerDownType;
 import edu.ucsb.eucalyptus.NcRebootInstance;
 import edu.ucsb.eucalyptus.NcRebootInstanceResponse;
 import edu.ucsb.eucalyptus.NcRebootInstanceResponseType;
@@ -52,40 +61,56 @@ import edu.ucsb.eucalyptus.NcTerminateInstanceResponse;
 import edu.ucsb.eucalyptus.NcTerminateInstanceResponseType;
 import edu.ucsb.eucalyptus.NcTerminateInstanceType;
 import edu.ucsb.eucalyptus.NetConfigType;
+import edu.ucsb.eucalyptus.SensorsResourceType;
 
 public class NodeFacade implements IdlenessListener {
 
-	private static final String SHUTDOWN_STATE = "0";
-	private static final String PREVIOUS_STATE = "0";
+	private static final String SUCCESS_STATE = "0";
+	private static final String UNSUCCESS_STATE = "2";
 	private final static Logger LOGGER = Logger.getLogger(NodeFacade.class);
 	private static NodeFacade instance = null;
 	
 	private InstanceRepository instanceRepository = new InstanceRepository();
-	private ResourcesInfoGatherer resourceUtils;
+	private ResourcesInfoGatherer resourcesGatherer;
 	private Properties properties;
-	private LinuxXSessionIdlenessDetector idlenessDetector;
+	private IdlenessChecker idlenessChecker;
 	private Executor threadPool = Executors.newFixedThreadPool(10);
 
 	
 	public NodeFacade(Properties properties, 
-			ResourcesInfoGatherer resIG) throws Exception {
+			IdlenessChecker iChecker,
+			ResourcesInfoGatherer resIG,
+			InstanceRepository iRep) throws Exception {
+		
 		this(properties);
-		this.resourceUtils = resIG;
+		
+		if (resIG != null) { 
+			this.resourcesGatherer = resIG;
+		}
+		
+		if (iRep != null) {
+			this.instanceRepository = iRep;
+		}
+		
+		this.idlenessChecker = iChecker;
 	}
 	
 	public NodeFacade(Properties properties) {
 		try {
 			this.properties = properties;
-			this.resourceUtils = new ResourcesInfoGatherer(properties);
+			this.resourcesGatherer = new ResourcesInfoGatherer(properties);
 			OurVirtUtils.setHypervisorEnvVars(properties);
 		} catch (SigarException e) {
 			LOGGER.error("Error while retrieving machine resources info.", e);
 			throw new RuntimeException(e);
 		}
 
-		this.idlenessDetector = new LinuxXSessionIdlenessDetector(properties);
-		this.idlenessDetector.addListener(this);
-		this.idlenessDetector.init();
+		LinuxXSessionIdlenessDetector idlenessDecector = 
+				new LinuxXSessionIdlenessDetector(properties);
+		idlenessDecector.addListener(this);
+		idlenessDecector.init();
+		
+		this.idlenessChecker = idlenessDecector; 
 	}
 	
 	private NodeFacade() {
@@ -112,16 +137,8 @@ public class NodeFacade implements IdlenessListener {
 	}
 	
 	
-	public InstanceRepository getInstanceRepository() {
-		return instanceRepository;
-	}
-
-	public void setInstanceRepository(InstanceRepository iRep) {
-		instanceRepository = iRep;
-	}
-	
 	private void checkNodeControllerAvailable() {
-		if (!idlenessDetector.isIdle()) {
+		if (!idlenessChecker.isIdle()) {
 			throw new IllegalStateException("The node controller is not available.");
 		}
 	}
@@ -144,7 +161,7 @@ public class NodeFacade implements IdlenessListener {
 		Resources available;
 		
 		try {
-			available = resourceUtils.describeAvailable(instanceRepository);
+			available = resourcesGatherer.describeAvailable(instanceRepository);
 		} catch (Exception e) {
 			LOGGER.error("Error while retrieving machine resources info.", e);
 			throw new RuntimeException(e);
@@ -156,9 +173,9 @@ public class NodeFacade implements IdlenessListener {
 		rType.setUserId(resourceRequest.getUserId());
 		
 		//Set operation-specific output fields
-		rType.setMemorySizeMax(resourceUtils.getTotalMem());
-		rType.setDiskSizeMax(resourceUtils.getTotalDiskSpace());
-		rType.setNumberOfCoresMax(resourceUtils.getTotalNumCores());
+		rType.setMemorySizeMax(resourcesGatherer.getTotalMem());
+		rType.setDiskSizeMax(resourcesGatherer.getTotalDiskSpace());
+		rType.setNumberOfCoresMax(resourcesGatherer.getTotalNumCores());
 
 		rType.setMemorySizeAvailable(available.getMem());
 		rType.setDiskSizeAvailable(available.getDisk());
@@ -236,8 +253,8 @@ public class NodeFacade implements IdlenessListener {
 		//Set operation-specific output fields
 		terminateInstance.setInstanceId(terminateRequest.getInstanceId());
 		
-		terminateInstance.setShutdownState(SHUTDOWN_STATE);
-		terminateInstance.setPreviousState(PREVIOUS_STATE);
+		terminateInstance.setShutdownState(SUCCESS_STATE);
+		terminateInstance.setPreviousState(SUCCESS_STATE);
 
 		terminateInstanceResponse.setNcTerminateInstanceResponse(terminateInstance);
 		return terminateInstanceResponse;
@@ -473,5 +490,55 @@ public class NodeFacade implements IdlenessListener {
 		bundleInstanceResponse.setNcBundleInstanceResponse(bundleInstance);
 		
 		return bundleInstanceResponse;
+	}
+
+	public NcPowerDownResponse powerDown(NcPowerDown ncPowerDown) {
+		
+		checkNodeControllerAvailable();
+		
+		NcPowerDownResponse powerDownResponse = new NcPowerDownResponse();
+		NcPowerDownResponseType powerDown = new NcPowerDownResponseType();
+		NcPowerDownType powerDownRequest = ncPowerDown.getNcPowerDown();
+		
+		LOGGER.info("Powering down Node Controller.");
+		
+		if (!resourcesGatherer.getOSType().equals("Linux")) {
+			LOGGER.warn("Power Down operation cannot be executed " +
+					"because OS Type is not Linux");
+			powerDown.setStatusMessage(UNSUCCESS_STATE);
+		} else {
+			try {
+				ProcessBuilder powerDownPB = new ProcessBuilder("sudo", 
+						"/usr/sbin/powernap-now");
+				powerDownPB.start();
+				//Best-effort approach: Does not check for command successful run 
+			} catch(Exception e) {}
+			powerDown.setStatusMessage(SUCCESS_STATE);
+		}
+		
+		//Set standard output fields
+		powerDown.set_return(true);
+		powerDown.setUserId(powerDownRequest.getUserId());
+		powerDown.setCorrelationId(powerDownRequest.getCorrelationId());
+		
+		powerDownResponse.setNcPowerDownResponse(powerDown);
+		
+		return powerDownResponse;
+	}
+
+	public NcDescribeSensorsResponse describeSensors(
+			NcDescribeSensors ncDescribeSensors) {
+		
+		checkNodeControllerAvailable();
+		
+		NcDescribeSensorsResponse describeSensorsResponse = new NcDescribeSensorsResponse();
+		NcDescribeSensorsResponseType describeSensors = new NcDescribeSensorsResponseType();
+		NcDescribeSensorsType describeSensorsRequest = ncDescribeSensors.getNcDescribeSensors();
+		
+		for (String instanceId : describeSensorsRequest.getInstanceIds()) {
+			checkInstanceExists(instanceId);
+		}
+		
+		return describeSensorsResponse;
 	}
 }

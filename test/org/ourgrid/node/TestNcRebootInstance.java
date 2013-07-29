@@ -1,13 +1,13 @@
 package org.ourgrid.node;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.Properties;
 
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.node.idleness.TestIdlenessChecker;
+import org.ourgrid.node.model.InstanceRepository;
 import org.ourgrid.node.util.OurVirtUtils;
 import org.ourgrid.virt.OurVirt;
 
@@ -21,25 +21,25 @@ public class TestNcRebootInstance {
 	
 	private NodeFacade facade;
 	private OurVirt ourvirtMock = Mockito.mock(OurVirt.class);
+	private TestIdlenessChecker testIChecker = new TestIdlenessChecker();
+	private InstanceRepository instanceRepository = new InstanceRepository();
 	private Properties properties;
-	private boolean idlenessEnabled = false;
 	
 	@Before
-	public void init() throws FileNotFoundException, IOException {
+	public void init() throws Exception {
 		properties = new Properties();
 		properties.load(new FileInputStream("WebContent/WEB-INF/conf/euca.conf"));
-		properties.setProperty("idleness.enabled", String.valueOf(idlenessEnabled));
-		facade = new NodeFacade(properties);
+		facade = new NodeFacade(properties, testIChecker, null, instanceRepository);
 		OurVirtUtils.setOurVirt(ourvirtMock);
 	}
 	
 	@Test(expected=IllegalStateException.class)
 	public void testNCNotAvailable() throws Exception {
 		
-		idlenessEnabled = true;
-		init();
+		testIChecker.setIdle(false);
 		
-		InstanceType instance = TestUtils.addInstanceToRepository(facade);
+		InstanceType instance = TestUtils.addBasicInstanceToRepository(
+				facade,instanceRepository);
 		
 		NcRebootInstance rebootReq = createRebootInstanceRequest(
 				instance.getInstanceId(), instance.getUserId());
@@ -59,7 +59,8 @@ public class TestNcRebootInstance {
 	
 	@Test
 	public void testMainFlow() throws Exception {
-		InstanceType instance = TestUtils.addInstanceToRepository(facade);
+		InstanceType instance = TestUtils.addBasicInstanceToRepository(
+				facade,instanceRepository);
 		
 		NcRebootInstance rebootReq = createRebootInstanceRequest(
 				instance.getInstanceId(), instance.getUserId());
@@ -80,8 +81,7 @@ public class TestNcRebootInstance {
 		NcRebootInstanceType rebootInstanceType = new NcRebootInstanceType();
 		rebootInstanceType.setInstanceId(instanceId);
 		rebootInstanceType.setUserId(userId);
-		rebootInstanceType.setCorrelationId(
-				String.valueOf(TestUtils.getNewCorrelationId()));
+		rebootInstanceType.setCorrelationId(TestUtils.getNewCorrelationId());
 		
 		NcRebootInstance rebootInstanceReq = new NcRebootInstance();
 		rebootInstanceReq.setNcRebootInstance(rebootInstanceType);

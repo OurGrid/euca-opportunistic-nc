@@ -41,16 +41,14 @@ public class TestNcPowerDown {
 	public void testNCNotAvailable() throws Exception {
 		testIChecker.setIdle(false);
 		
-		NcPowerDown powerDownReq = createPowerDownRequest(
-				String.valueOf(TestUtils.getNewUserId()));
+		NcPowerDown powerDownReq = createPowerDownRequest();
 		
 		facade.powerDown(powerDownReq);
 	}
 	
 	@Test
 	public void testNonUnixOS() throws Exception {
-		NcPowerDown powerDownReq = createPowerDownRequest(
-				String.valueOf(TestUtils.getNewUserId()));
+		NcPowerDown powerDownReq = createPowerDownRequest();
 		
 		Mockito.when(rIGMock.getOSType()).thenReturn("");
 		
@@ -68,8 +66,7 @@ public class TestNcPowerDown {
 	
 	@Test
 	public void testMainFlow() throws Exception {
-		NcPowerDown powerDownReq = createPowerDownRequest(
-				String.valueOf(TestUtils.getNewUserId()));
+		NcPowerDown powerDownReq = createPowerDownRequest();
 		
 		Mockito.when(rIGMock.getOSType()).thenReturn(LINUX);
 		
@@ -85,11 +82,10 @@ public class TestNcPowerDown {
 		Assert.assertEquals(response.getStatusMessage(), SUCCESS_STATUS_MSG);
 	}
 	
-	private NcPowerDown createPowerDownRequest(String userId) {
+	private NcPowerDown createPowerDownRequest() {
 		NcPowerDownType powerDownType = new NcPowerDownType();
-		powerDownType.setUserId(userId);
-		powerDownType.setCorrelationId(
-				String.valueOf(TestUtils.getNewCorrelationId()));
+		powerDownType.setUserId(TestUtils.getNewUserId());
+		powerDownType.setCorrelationId(TestUtils.getNewCorrelationId());
 
 		NcPowerDown powerDownReq = new NcPowerDown();
 		powerDownReq.setNcPowerDown(powerDownType);

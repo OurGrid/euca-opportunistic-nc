@@ -1,7 +1,5 @@
 package org.ourgrid.node;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Properties;
 
@@ -9,6 +7,8 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.node.idleness.TestIdlenessChecker;
+import org.ourgrid.node.model.InstanceRepository;
 import org.ourgrid.node.util.OurVirtUtils;
 import org.ourgrid.virt.OurVirt;
 import org.ourgrid.virt.model.HypervisorType;
@@ -26,26 +26,26 @@ public class TestNcAssignAddress {
 	private static int PUBLIC_IP = 1;
 	private NodeFacade facade;
 	private OurVirt ourvirtMock = Mockito.mock(OurVirt.class);
+	private TestIdlenessChecker testIChecker = new TestIdlenessChecker();
+	private InstanceRepository instanceRepository = new InstanceRepository();
 	private Properties properties;
-	private boolean idlenessEnabled = false;
 	private static final String STATUS_MSG = "0"; 
 	
 	@Before
-	public void init() throws FileNotFoundException, IOException {
+	public void init() throws Exception {
 		properties = new Properties();
 		properties.load(new FileInputStream("WebContent/WEB-INF/conf/euca.conf"));
-		properties.setProperty("idleness.enabled", String.valueOf(idlenessEnabled));
-		facade = new NodeFacade(properties);
+		facade = new NodeFacade(properties, testIChecker, null, instanceRepository);
 		OurVirtUtils.setOurVirt(ourvirtMock);
 	}
 	
 	@Test(expected=IllegalStateException.class)
 	public void testNCNotAvailable() throws Exception {
 		
-		idlenessEnabled = true;
-		init();
+		testIChecker.setIdle(false);
 		
-		InstanceType instance = TestUtils.addInstanceToRepository(facade);
+		InstanceType instance = TestUtils.addBasicInstanceToRepository(
+				facade, instanceRepository);
 		
 		NcAssignAddress assignReq = createAssignAddressRequest(
 				instance.getInstanceId(), instance.getUserId(),
@@ -67,7 +67,8 @@ public class TestNcAssignAddress {
 	@Test
 	public void testNotRegisteredInstance() throws Exception {
 		
-		InstanceType instance = TestUtils.addInstanceToRepository(facade);
+		InstanceType instance = TestUtils.addBasicInstanceToRepository(
+				facade, instanceRepository);
 		
 		NcAssignAddress assignReq = createAssignAddressRequest(
 				instance.getInstanceId(), instance.getUserId(),
@@ -92,7 +93,9 @@ public class TestNcAssignAddress {
 	
 	@Test
 	public void testMainFlow() throws Exception {
-		InstanceType instance = TestUtils.addInstanceToRepository(facade);
+		
+		InstanceType instance = TestUtils.addBasicInstanceToRepository(
+				facade, instanceRepository);
 		
 		NcAssignAddress assignReq = createAssignAddressRequest(
 				instance.getInstanceId(), 
@@ -132,8 +135,7 @@ public class TestNcAssignAddress {
 		assignAddressType.setUserId(userId);
 		assignAddressType.setStatusMessage(STATUS_MSG);
 		assignAddressType.setPublicIp(publicIp);
-		assignAddressType.setCorrelationId(
-				String.valueOf(TestUtils.getNewCorrelationId()));
+		assignAddressType.setCorrelationId(TestUtils.getNewCorrelationId());
 
 		NcAssignAddress assignReq = new NcAssignAddress();
 		assignReq.setNcAssignAddress(assignAddressType);

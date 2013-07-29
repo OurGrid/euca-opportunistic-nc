@@ -1,10 +1,12 @@
 package org.ourgrid.node.util;
 
+import java.io.FileInputStream;
 import java.util.Properties;
 
 import org.hyperic.sigar.CpuInfo;
 import org.hyperic.sigar.FileSystemUsage;
 import org.hyperic.sigar.Mem;
+import org.hyperic.sigar.OperatingSystem;
 import org.hyperic.sigar.Sigar;
 import org.hyperic.sigar.SigarException;
 import org.ourgrid.node.model.InstanceRepository;
@@ -21,8 +23,6 @@ public class ResourcesInfoGatherer {
 	private FileSystemUsage fileSysUsage;
 	private Mem memory;
 	
-	private boolean mocked = false;
-	
 	private static String imageCloneRootDir;
 	public static String ISCSI_IQN;
 	public static String PUBLIC_SUBNETS = "none";
@@ -31,33 +31,25 @@ public class ResourcesInfoGatherer {
 	public ResourcesInfoGatherer(Properties properties) throws SigarException {
 		imageCloneRootDir = properties.getProperty(NodeProperties.CLONEROOT);
 		ISCSI_IQN = properties.getProperty(NodeProperties.ISCSI_IQN);
+		sigarUtils = new Sigar();
 		reloadSigarInfo();
 	}
 	
-	public ResourcesInfoGatherer(Properties properties, CpuInfo cpuInfo, 
-			FileSystemUsage fileSysUsage, Mem mem) throws SigarException {
+	public ResourcesInfoGatherer(Properties properties, Sigar sigar) throws SigarException {
 		imageCloneRootDir = properties.getProperty(NodeProperties.CLONEROOT);
 		ISCSI_IQN = properties.getProperty(NodeProperties.ISCSI_IQN);
-		reloadSigarInfo(cpuInfo, fileSysUsage, mem);
-		mocked = true;
+		sigarUtils = sigar;
+		reloadSigarInfo();
 	}
 	
 	private void reloadSigarInfo() throws SigarException {
 		try {
-			sigarUtils = new Sigar();
 			cpuInfo = sigarUtils.getCpuInfoList()[0];
 			fileSysUsage = sigarUtils.getFileSystemUsage(imageCloneRootDir);
 			memory = sigarUtils.getMem();
 		} catch (SigarException e) {
 			throw e;
 		}
-	}
-	
-	private void reloadSigarInfo(CpuInfo cpuI, FileSystemUsage fSUsage, Mem mem)
-			throws SigarException {
-		cpuInfo = cpuI;
-		fileSysUsage = fSUsage;
-		memory = mem;
 	}
 	
 	private int getAvailMem() {
@@ -81,11 +73,9 @@ public class ResourcesInfoGatherer {
 	}
 	
 	public Resources describeAvailable(InstanceRepository instanceRepository) throws Exception {
-		if (mocked) {
-			reloadSigarInfo(cpuInfo, fileSysUsage, memory);
-		} else {
-			reloadSigarInfo();
-		}
+		
+		reloadSigarInfo();
+		
 		int availCores = getTotalNumCores();
 		int availMemory = getTotalMem();
 		int availDiskSpace = getTotalDiskSpace();
@@ -108,4 +98,28 @@ public class ResourcesInfoGatherer {
 		
 		return available;
 	}
+	
+	public String getOSType() {
+		return OperatingSystem.getInstance().getName();
+	}
+	
+	//TODO Remove this after testing
+	public static void main(String[] args) throws Exception {
+		Properties properties = new Properties();
+		properties.load(new FileInputStream("WebContent/WEB-INF/conf/euca.conf"));
+		ResourcesInfoGatherer rig = new ResourcesInfoGatherer(properties);
+		
+		InstanceRepository iRep = new InstanceRepository();
+		
+		Resources res1, res2;
+//		res1 = rig.describeAvailable(iRep);
+		
+//		res2 = rig.describeAvailable(iRep);
+		
+		System.out.println(rig.getOSType());
+		System.out.println("Finished!");		
+	}
+
+	
+	
 }

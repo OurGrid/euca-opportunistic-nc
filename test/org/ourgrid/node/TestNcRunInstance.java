@@ -1,7 +1,5 @@
 package org.ourgrid.node;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.Calendar;
 import java.util.Properties;
 
@@ -9,6 +7,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.node.idleness.TestIdlenessChecker;
 import org.ourgrid.node.model.InstanceRepository;
 import org.ourgrid.node.util.OurVirtUtils;
 import org.ourgrid.virt.OurVirt;
@@ -25,8 +24,8 @@ public class TestNcRunInstance {
 	
 	private NodeFacade facade;
 	private OurVirt ourvirtMock = Mockito.mock(OurVirt.class);
+	private TestIdlenessChecker testIChecker = new TestIdlenessChecker();
 	private Properties properties;
-	private boolean idlenessEnabled = false;
 	
 	private static final String instKeyName = "INST_KEY_NAME";
 	private static final String instUserData = "INST_USER_DATA";
@@ -43,19 +42,17 @@ public class TestNcRunInstance {
 	
 	
 	@Before
-	public void init() throws FileNotFoundException, IOException {
+	public void init() throws Exception {
 		properties = new Properties();
 		properties.load(new FileInputStream("WebContent/WEB-INF/conf/euca.conf"));
-		properties.setProperty("idleness.enabled", String.valueOf(idlenessEnabled));
-		facade = new NodeFacade(properties);
+		facade = new NodeFacade(properties, testIChecker, null, null);
 		OurVirtUtils.setOurVirt(ourvirtMock);
 	}
 	
 	@Test(expected=IllegalStateException.class)
 	public void testNCNotAvailable() throws Exception {
 		
-		idlenessEnabled = true;
-		init();
+		testIChecker.setIdle(false);
 		
 		NcRunInstance runReq = createRunInstanceRequest();
 		
@@ -167,20 +164,13 @@ public class TestNcRunInstance {
 	private static NcRunInstance createRunInstanceRequest() {
 		NcRunInstanceType runInstanceType = new NcRunInstanceType();
 		
-		runInstanceType.setUuid(String.valueOf(
-				TestUtils.getNewInstanceUUID()));
-		runInstanceType.setInstanceId(String.valueOf(
-				TestUtils.getNewInstanceId()));
-		runInstanceType.setReservationId(
-				String.valueOf(TestUtils.getNewInstanceReservationId()));
-		runInstanceType.setUserId(
-				String.valueOf(TestUtils.getNewUserId()));
-		runInstanceType.setCorrelationId(
-				String.valueOf(TestUtils.getNewCorrelationId()));
-		runInstanceType.setOwnerId(String.valueOf(
-				TestUtils.getNewInstanceOwnerId()));
-		runInstanceType.setAccountId(String.valueOf(
-				TestUtils.getNewInstanceAccountId()));
+		runInstanceType.setUuid(TestUtils.getNewInstanceUUID());
+		runInstanceType.setInstanceId(TestUtils.getNewInstanceId());
+		runInstanceType.setReservationId(TestUtils.getNewInstanceReservationId());
+		runInstanceType.setUserId(TestUtils.getNewUserId());
+		runInstanceType.setCorrelationId(TestUtils.getNewCorrelationId());
+		runInstanceType.setOwnerId(TestUtils.getNewInstanceOwnerId());
+		runInstanceType.setAccountId(TestUtils.getNewInstanceAccountId());
 		runInstanceType.setKeyName(instKeyName);
 		
 		VirtualMachineType vmType = TestUtils.createBasicVMType();

@@ -15,50 +15,60 @@ public class TestUtils {
 	private static int instOwnerId = 0;
 	private static int instAccountId = 0;
 	
-	public static final String DEFAULT_INSTANCE_ID = "001"; 
+	public static final String DEFAULT_INSTANCE_ID = "inst001"; 
 	public static final String DEFAULT_USER_ID = "user001";
+	public static final String DEFAULT_SENSOR_ID = "sensor001";
 	
 	public static final int DEF_INST_NUM_CORES = 2;
 	public static final int DEF_INST_MEM = 1024;
 	public static final int DEF_INST_DISK = 100;
 	
 	
-	public static int getNewInstanceId() {
-		return instanceId++;
+	public static String getNewInstanceId() {
+		return String.valueOf(instanceId++);
 	}
 	
-	public static int getNewUserId() {
-		return userId++;
+	public static String getNewUserId() {
+		return String.valueOf(userId++);
 	}
 	
-	public static int getNewInstanceUUID() {
-		return instUuId++;
+	public static String getNewInstanceUUID() {
+		return String.valueOf(instUuId++);
 	}
 	
-	public static int getNewInstanceReservationId() {
-		return instReservationId++;
+	public static String getNewInstanceReservationId() {
+		return String.valueOf(instReservationId++);
 	}
 	
-	public static int getNewInstanceOwnerId() {
-		return instOwnerId++;
+	public static String getNewInstanceOwnerId() {
+		return String.valueOf(instOwnerId++);
 	}
 	
-	public static int getNewInstanceAccountId() {
-		return instAccountId++;
+	public static String getNewInstanceAccountId() {
+		return String.valueOf(instAccountId++);
 	}
 	
-	public static int getNewCorrelationId() {
-		return correlationId++;
+	public static String getNewCorrelationId() {
+		return String.valueOf(correlationId++);
 	}
 	
-	public static InstanceType addInstanceToRepository(NodeFacade facade) {
+	public static InstanceType addBasicInstanceToRepository(NodeFacade facade,
+			InstanceRepository iRep) {
 		InstanceType instance = createBasicInstance();
 				
-		return addInstanceToRepository(instance, facade);
+		return addInstanceToRepository(instance, facade, iRep);
+	}
+	
+	public static InstanceType addInstanceWithSensorToRepository(NodeFacade facade,
+			InstanceRepository iRep) {
+		InstanceType instance = createBasicInstance();
+				
+		return addInstanceToRepository(instance, facade, iRep);
 	}
 
 	public static InstanceType addInstanceToRepository(int numCores, 
-			int mem, int disk, NodeFacade facade) {
+			int mem, int disk, NodeFacade facade, 
+			InstanceRepository iRep) {
 		
 		VirtualMachineType vmType = new VirtualMachineType();
 		vmType.setCores(numCores);
@@ -69,7 +79,7 @@ public class TestUtils {
 		instance.setInstanceType(vmType);
 		instance.setStateName(InstanceRepository.EXTANT_STATE);
 		
-		return addInstanceToRepository(instance, facade);
+		return addInstanceToRepository(instance, facade, iRep);
 	}
 	
 	public static VirtualMachineType createBasicVMType() {
@@ -81,26 +91,21 @@ public class TestUtils {
 	}
 	
 	public static InstanceType addInstanceToRepository(InstanceType instance,
-			NodeFacade facade) {
-		InstanceRepository iRep = facade.getInstanceRepository();
+			NodeFacade facade, InstanceRepository iRep) {
 		iRep.addInstance(instance);
-		facade.setInstanceRepository(iRep);
 		
 		return instance;
 	}
 	
 	public static void removeInstanceFromRepository(InstanceType instance, 
-			NodeFacade facade) {
-		InstanceRepository iRep = facade.getInstanceRepository();
+			NodeFacade facade, InstanceRepository iRep) {
 		iRep.removeInstance(instance.getInstanceId());
-		facade.setInstanceRepository(iRep);
-		
 	}
 
 	private static InstanceType createBasicInstance() {
 		InstanceType instance = new InstanceType();
-		instance.setInstanceId(String.valueOf(getNewInstanceId()));
-		instance.setUserId(String.valueOf(getNewUserId()));
+		instance.setInstanceId(getNewInstanceId());
+		instance.setUserId(getNewUserId());
 		return instance;
 	}
 	

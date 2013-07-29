@@ -2,8 +2,6 @@ package org.ourgrid.node;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Properties;
 
@@ -11,6 +9,8 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.node.idleness.TestIdlenessChecker;
+import org.ourgrid.node.model.InstanceRepository;
 import org.ourgrid.node.util.NodeProperties;
 import org.ourgrid.node.util.OurVirtUtils;
 import org.ourgrid.node.util.WalrusUtils;
@@ -27,85 +27,46 @@ public class TestNcTerminateInstance {
 
 	private NodeFacade facade;
 	private OurVirt ourvirtMock = Mockito.mock(OurVirt.class);
+	private TestIdlenessChecker testIChecker = new TestIdlenessChecker();
+	private InstanceRepository instanceRepository = new InstanceRepository();
 	private Properties properties;
-	private boolean idlenessEnabled = false;
 	private static final String SHUTDOWN_STATE = "0";
 	private static final String PREVIOUS_STATE = "0";
 
 	@Before
-	public void init() throws FileNotFoundException, IOException {
+	public void init() throws Exception {
 		properties = new Properties();
 		properties.load(
 				new FileInputStream("WebContent/WEB-INF/conf/euca.conf"));
-		properties.setProperty("idleness.enabled",
-				String.valueOf(idlenessEnabled));
-		facade = new NodeFacade(properties);
+		facade = new NodeFacade(properties, testIChecker, null, instanceRepository);
 		OurVirtUtils.setOurVirt(ourvirtMock);
 	}
 
 	@Test(expected = IllegalStateException.class)
 	public void testNCNotAvailable() throws Exception {
 
-		idlenessEnabled = true;
-		init();
-
-		InstanceType instance = TestUtils.addInstanceToRepository(facade);
-
-		NcTerminateInstance terminateReq = createTermInstanceRequest(
-				instance.getInstanceId(), instance.getUserId());
+		testIChecker.setIdle(false);
+		
+		NcTerminateInstance terminateReq = createTerminateInstanceRequest(
+				TestUtils.DEFAULT_INSTANCE_ID, TestUtils.DEFAULT_USER_ID);
 
 		facade.terminateInstance(terminateReq);
-
 	}
 
 	@Test(expected = IllegalArgumentException.class)
 	public void testInexistentInstance() throws Exception {
 
-		NcTerminateInstance terminateReq = createTermInstanceRequest("", "");
-
+		NcTerminateInstance terminateReq = createTerminateInstanceRequest("", "");
 		facade.terminateInstance(terminateReq);
-	}
-
-	@Test
-	public void testInexistentCloneFile() throws Exception {
-
-		InstanceType instance = TestUtils.addInstanceToRepository(facade);
-
-		NcTerminateInstance terminateReq = createTermInstanceRequest(
-				instance.getInstanceId(), instance.getUserId());
-
-		String cloneFilePath = properties.getProperty(NodeProperties.CLONEROOT)
-				+ File.separator + instance.getInstanceId() + WalrusUtils.VDI_EXT;
-
-		File cloneFile = new File(cloneFilePath);
-
-		if (cloneFile.exists()) {
-			if (cloneFile.delete()) {
-				throw new Exception("Could not delete clone file at: "
-						+ cloneFilePath + " for test.");
-			}
-		}
-
-		Mockito.when(
-				ourvirtMock.status(Mockito.any(HypervisorType.class),
-						Mockito.eq(instance.getInstanceId()))).thenReturn(
-				VirtualMachineStatus.RUNNING);
-
-		facade.terminateInstance(terminateReq);
-
-		Mockito.verify(ourvirtMock).destroy(Mockito.any(HypervisorType.class),
-				Mockito.eq(instance.getInstanceId()));
-
-		Assert.assertFalse(cloneFile.exists());
-
 	}
 
 	@Test
 	public void testCloneFileDeleted() throws Exception {
 
-		InstanceType instance = TestUtils.addInstanceToRepository(facade);
+		InstanceType instance = TestUtils.addBasicInstanceToRepository(
+				facade, instanceRepository);
 
-		NcTerminateInstance terminateReq = createTermInstanceRequest(
+		NcTerminateInstance terminateReq = createTerminateInstanceRequest(
 				instance.getInstanceId(), instance.getUserId());
 
 		String cloneFilePath = properties.getProperty(NodeProperties.CLONEROOT)
@@ -135,9 +96,10 @@ public class TestNcTerminateInstance {
 	@Test
 	public void testNotRegisteredVM() throws Exception {
 
-		InstanceType instance = TestUtils.addInstanceToRepository(facade);
+		InstanceType instance = TestUtils.addBasicInstanceToRepository(
+				facade, instanceRepository);
 
-		NcTerminateInstance terminateReq = createTermInstanceRequest(
+		NcTerminateInstance terminateReq = createTerminateInstanceRequest(
 				instance.getInstanceId(), instance.getUserId());
 
 		Mockito.when(
@@ -156,9 +118,10 @@ public class TestNcTerminateInstance {
 	@Test
 	public void testNotCreatedVM() throws Exception {
 
-		InstanceType instance = TestUtils.addInstanceToRepository(facade);
+		InstanceType instance = TestUtils.addBasicInstanceToRepository(
+				facade, instanceRepository);
 
-		NcTerminateInstance terminateReq = createTermInstanceRequest(
+		NcTerminateInstance terminateReq = createTerminateInstanceRequest(
 				instance.getInstanceId(), instance.getUserId());
 
 		Mockito.when(
@@ -175,9 +138,10 @@ public class TestNcTerminateInstance {
 	@Test
 	public void testPoweredOffVM() throws Exception {
 
-		InstanceType instance = TestUtils.addInstanceToRepository(facade);
+		InstanceType instance = TestUtils.addBasicInstanceToRepository(
+				facade, instanceRepository);
 
-		NcTerminateInstance terminateReq = createTermInstanceRequest(
+		NcTerminateInstance terminateReq = createTerminateInstanceRequest(
 				instance.getInstanceId(), instance.getUserId());
 
 		Mockito.when(
@@ -194,9 +158,10 @@ public class TestNcTerminateInstance {
 	@Test
 	public void testMainFlow() throws Exception {
 
-		InstanceType instance = TestUtils.addInstanceToRepository(facade);
+		InstanceType instance = TestUtils.addBasicInstanceToRepository(
+				facade, instanceRepository);
 
-		NcTerminateInstance terminateReq = createTermInstanceRequest(
+		NcTerminateInstance terminateReq = createTerminateInstanceRequest(
 				instance.getInstanceId(), instance.getUserId());
 
 		Mockito.when(
@@ -216,18 +181,16 @@ public class TestNcTerminateInstance {
 		Assert.assertEquals(response.getUserId(), instance.getUserId());
 
 		Assert.assertEquals(response.getInstanceId(), instance.getInstanceId());
-		Assert.assertTrue(response.getShutdownState() == SHUTDOWN_STATE);
-		Assert.assertTrue(response.getPreviousState() == PREVIOUS_STATE);
-
+		Assert.assertEquals(response.getShutdownState(), SHUTDOWN_STATE);
+		Assert.assertEquals(response.getPreviousState(), PREVIOUS_STATE);
 	}
 
-	private NcTerminateInstance createTermInstanceRequest(String instanceId,
+	private static NcTerminateInstance createTerminateInstanceRequest(String instanceId,
 			String userId) {
 		NcTerminateInstanceType termInstanceType = new NcTerminateInstanceType();
 		termInstanceType.setInstanceId(instanceId);
 		termInstanceType.setUserId(userId);
-		termInstanceType.setCorrelationId(
-				String.valueOf(TestUtils.getNewCorrelationId()));
+		termInstanceType.setCorrelationId(TestUtils.getNewCorrelationId());
 
 		NcTerminateInstance terminateReq = new NcTerminateInstance();
 		terminateReq.setNcTerminateInstance(termInstanceType);
