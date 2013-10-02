@@ -23,8 +23,7 @@ public class EucalyptusNCSkeleton {
 	public edu.ucsb.eucalyptus.NcDescribeSensorsResponse ncDescribeSensors(
 			edu.ucsb.eucalyptus.NcDescribeSensors ncDescribeSensors) {
 		// TODO : fill this with the necessary business logic
-		throw new java.lang.UnsupportedOperationException("Please implement "
-				+ this.getClass().getName() + "#ncDescribeSensors");
+		return NodeFacade.getInstance().describeSensors(ncDescribeSensors);
 	}
 
 	/**
@@ -142,9 +141,7 @@ public class EucalyptusNCSkeleton {
 
 	public edu.ucsb.eucalyptus.NcPowerDownResponse ncPowerDown(
 			edu.ucsb.eucalyptus.NcPowerDown ncPowerDown) {
-		// TODO : fill this with the necessary business logic
-		throw new java.lang.UnsupportedOperationException("Please implement "
-				+ this.getClass().getName() + "#ncPowerDown");
+		return NodeFacade.getInstance().powerDown(ncPowerDown);
 	}
 
 	/**

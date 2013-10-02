@@ -14,6 +14,7 @@ import org.ourgrid.node.idleness.LinuxXSessionIdlenessDetector;
 import org.ourgrid.node.model.InstanceRepository;
 import org.ourgrid.node.model.Resources;
 import org.ourgrid.node.model.VBR;
+import org.ourgrid.node.model.sensor.SensorResource;
 import org.ourgrid.node.util.NetUtils;
 import org.ourgrid.node.util.OurVirtUtils;
 import org.ourgrid.node.util.ResourcesInfoGatherer;
@@ -539,6 +540,32 @@ public class NodeFacade implements IdlenessListener {
 			checkInstanceExists(instanceId);
 		}
 		
+		if (!isArrayEmpty(describeSensorsRequest.getSensorIds())) {
+			throw new IllegalArgumentException("No support for sensorIds[]");
+		}
+		
+		describeSensors.set_return(true);
+		describeSensors.setUserId(describeSensorsRequest.getUserId());
+		describeSensors.setCorrelationId(describeSensorsRequest.getCorrelationId());
+		
+		
+		SensorsResourceType[] sensorResources = new SensorsResourceType[1];
+//		sensorResources[0] = new SensorResource(null, null, null, null, null, null);
+		
+		describeSensors.setSensorsResources(null);
+		
+		describeSensorsResponse.setNcDescribeSensorsResponse(describeSensors);
+		
 		return describeSensorsResponse;
+	}
+	
+	private boolean isArrayEmpty(String[] array) {
+		for (String string : array) {
+			if (string != null) {
+				return false;
+			}
+		}
+		
+		return true;
 	}
 }

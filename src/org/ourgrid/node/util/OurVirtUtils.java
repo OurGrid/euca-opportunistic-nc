@@ -2,13 +2,17 @@ package org.ourgrid.node.util;
 
 import java.io.File;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 
 import org.ourgrid.node.model.VBR;
 import org.ourgrid.virt.OurVirt;
+import org.ourgrid.virt.model.CPUStats;
+import org.ourgrid.virt.model.DiskStats;
 import org.ourgrid.virt.model.HypervisorType;
+import org.ourgrid.virt.model.NetworkStats;
 import org.ourgrid.virt.model.VirtualMachineConstants;
 import org.ourgrid.virt.model.VirtualMachineStatus;
 
@@ -149,7 +153,20 @@ public class OurVirtUtils {
 				VirtualMachineConstants.IP, publicIp);
 	}
 	
+	public static CPUStats getCPUStats(String instanceId) throws Exception {
+		return OURVIRT.getCPUStats(HypervisorType.VBOXSDK, instanceId);
+	}
+	
+	public static NetworkStats getNetworkStats(String instanceId) throws Exception {
+		return OURVIRT.getNetworkStats(HypervisorType.VBOXSDK, instanceId);
+	}
+	
+	public static List<DiskStats> getDiskStats(String instanceId) throws Exception {
+		return OURVIRT.getDiskStats(HypervisorType.VBOXSDK, instanceId);
+	}
+	
 	private static VirtualMachineStatus getStatus(String instanceId) throws Exception {
 		return OURVIRT.status(HypervisorType.VBOXSDK, instanceId);
 	}
+	
 }

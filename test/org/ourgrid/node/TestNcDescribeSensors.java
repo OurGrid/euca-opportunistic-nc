@@ -1,18 +1,23 @@
 package org.ourgrid.node;
 
 import java.io.FileInputStream;
+import java.util.Calendar;
 import java.util.Properties;
 
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.node.idleness.TestIdlenessChecker;
 import org.ourgrid.node.model.InstanceRepository;
+import org.ourgrid.node.model.sensor.MetricValue;
+import org.ourgrid.node.model.sensor.SensorResource;
 import org.ourgrid.node.util.OurVirtUtils;
 import org.ourgrid.virt.OurVirt;
 
 import edu.ucsb.eucalyptus.InstanceType;
 import edu.ucsb.eucalyptus.NcDescribeSensors;
+import edu.ucsb.eucalyptus.NcDescribeSensorsResponseType;
 import edu.ucsb.eucalyptus.NcDescribeSensorsType;
 
 public class TestNcDescribeSensors {
@@ -23,7 +28,6 @@ public class TestNcDescribeSensors {
 	private TestIdlenessChecker testIChecker = new TestIdlenessChecker();
 	private InstanceRepository instanceRepository = new InstanceRepository();
 	private Properties properties;
-	private static final String STATUS_MSG = "0";
 	private static final int DEF_COLLECTION_INT_TIME_MS = 30; 
 	
 	@Before
@@ -75,40 +79,30 @@ public class TestNcDescribeSensors {
 	}
 	
 	
-	
 	@Test
 	public void testMainFlow() throws Exception {
 		
-		InstanceType instance = TestUtils.addBasicInstanceToRepository(
+		InstanceType instance = TestUtils.addInstanceWithSensorToRepository(
 				facade, instanceRepository);
 		
+		String[] instancesIds = {instance.getInstanceId()};
+		String[] sensorsIds =  new String[1];
 		
+		NcDescribeSensors describeSensorsReq = createDescribeSensorsRequest(
+				instancesIds, sensorsIds);
 		
-//			NcAssignAddress assignReq = createAssignAddressRequest(
-//				instance.getInstanceId(), 
-//				instance.getUserId(),
-//				getPublicIp());
-//		
-//		Mockito.when((ourvirtMock.status(Mockito.any(HypervisorType.class), 
-//				Mockito.eq(instance.getInstanceId())))).thenReturn(
-//						VirtualMachineStatus.RUNNING);
-//		
-//		NcAssignAddressResponseType response = 
-//				facade.assignAddress(assignReq).getNcAssignAddressResponse();
-//		
-//		Mockito.verify(ourvirtMock).setProperty(
-//				Mockito.any(HypervisorType.class),
-//				Mockito.eq(instance.getInstanceId()),
-//				Mockito.eq(VirtualMachineConstants.IP),
-//				Mockito.eq(assignReq.getNcAssignAddress().getPublicIp()));
-//		
-//		Assert.assertTrue(response.get_return());
-//		Assert.assertEquals(response.getUserId(),instance.getUserId());
-//		Assert.assertEquals(response.getCorrelationId(),
-//				assignReq.getNcAssignAddress().getCorrelationId());
-//		Assert.assertEquals(response.getStatusMessage(),
-//				assignReq.getNcAssignAddress().getStatusMessage());
+		NcDescribeSensorsType descSensorsReqType = describeSensorsReq.getNcDescribeSensors();
 		
+		NcDescribeSensorsResponseType response = facade.describeSensors(describeSensorsReq)
+				.getNcDescribeSensorsResponse();
+		
+		Assert.assertTrue(response.get_return());
+		Assert.assertEquals(descSensorsReqType.getUserId(), response.getUserId());
+		Assert.assertEquals(descSensorsReqType.getCorrelationId(), response.getCorrelationId());
+		
+		Assert.assertTrue(response.getSensorsResources().length == 1);
+
+//		Assert.assertEquals(response.getSensorsResources()[0],sResource);
 	}
 	
 	private NcDescribeSensors createDescribeSensorsRequest(String[] instancesIds,
@@ -125,5 +119,11 @@ public class TestNcDescribeSensors {
 		describeSensors.setNcDescribeSensors(describeSensorsType);
 		
 		return describeSensors;
+	}
+	
+	private SensorResource buildInstanceSensorResource(InstanceType instance) {
+		
+		MetricValue metricValue = new MetricValue(Calendar.getInstance(), 300);
+		return null;
 	}
 }
