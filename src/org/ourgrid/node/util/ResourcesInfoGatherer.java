@@ -1,5 +1,6 @@
 package org.ourgrid.node.util;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.util.Properties;
 
@@ -22,24 +23,42 @@ public class ResourcesInfoGatherer {
 	private CpuInfo cpuInfo;
 	private FileSystemUsage fileSysUsage;
 	private Mem memory;
+	private String imageCloneRootDir;
+	private String imageCacheRootDir;
 	
-	private static String imageCloneRootDir;
 	public static String ISCSI_IQN;
 	public static String PUBLIC_SUBNETS = "none";
 	public static String NODE_STATUS_OK = "OK";
 	
 	public ResourcesInfoGatherer(Properties properties) throws SigarException {
 		imageCloneRootDir = properties.getProperty(NodeProperties.CLONEROOT);
+		imageCacheRootDir = properties.getProperty(NodeProperties.CACHEROOT);
 		ISCSI_IQN = properties.getProperty(NodeProperties.ISCSI_IQN);
 		sigarUtils = new Sigar();
+		createCacheAndCloneDirectories();
 		reloadSigarInfo();
 	}
 	
 	public ResourcesInfoGatherer(Properties properties, Sigar sigar) throws SigarException {
 		imageCloneRootDir = properties.getProperty(NodeProperties.CLONEROOT);
+		imageCacheRootDir = properties.getProperty(NodeProperties.CACHEROOT);
 		ISCSI_IQN = properties.getProperty(NodeProperties.ISCSI_IQN);
 		sigarUtils = sigar;
+		createCacheAndCloneDirectories();
 		reloadSigarInfo();
+	}
+	
+	private void createCacheAndCloneDirectories() {
+		File imageCloneDir = new File(imageCloneRootDir);
+		File imageCacheDir = new File(imageCacheRootDir);
+		
+		if (!imageCloneDir.exists()) {
+			imageCloneDir.mkdirs();
+		}
+		
+		if (!imageCacheDir.exists()) {
+			imageCacheDir.mkdirs();
+		}
 	}
 	
 	private void reloadSigarInfo() throws SigarException {
