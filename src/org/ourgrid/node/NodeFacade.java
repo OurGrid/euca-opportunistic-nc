@@ -10,11 +10,10 @@ import org.apache.log4j.Logger;
 import org.hyperic.sigar.SigarException;
 import org.ourgrid.node.idleness.IdlenessChecker;
 import org.ourgrid.node.idleness.IdlenessListener;
-import org.ourgrid.node.idleness.LinuxXSessionIdlenessDetector;
+import org.ourgrid.node.idleness.LinuxDevInputIdlenessDetector;
 import org.ourgrid.node.model.InstanceRepository;
 import org.ourgrid.node.model.Resources;
 import org.ourgrid.node.model.VBR;
-import org.ourgrid.node.model.sensor.SensorResource;
 import org.ourgrid.node.util.NetUtils;
 import org.ourgrid.node.util.OurVirtUtils;
 import org.ourgrid.node.util.ResourcesInfoGatherer;
@@ -106,8 +105,8 @@ public class NodeFacade implements IdlenessListener {
 			throw new RuntimeException(e);
 		}
 
-		LinuxXSessionIdlenessDetector idlenessDecector = 
-				new LinuxXSessionIdlenessDetector(properties);
+		LinuxDevInputIdlenessDetector idlenessDecector = 
+				new LinuxDevInputIdlenessDetector(properties);
 		idlenessDecector.addListener(this);
 		idlenessDecector.init();
 		

@@ -46,7 +46,7 @@ public class WalrusUtils {
 	private static final String GET_DECRYPTED_IMG = "GetDecryptedImage";
 	private static final String GET_OBJECT = "GetObject";
 	
-	public static final String VDI_EXT = ".vdi";
+	public static final String IMG_EXT = ".img";
 
 	public static void downloadImage(String resourceURLStr, String imageId, 
 			Properties properties) throws Exception {

@@ -22,6 +22,7 @@ import edu.ucsb.eucalyptus.VirtualMachineType;
 public class OurVirtUtils {
 
 	private static OurVirt OURVIRT;
+	private static final HypervisorType HYPERVISOR = HypervisorType.QEMU;
 	
 	public static void setHypervisorEnvVars(Properties properties) {
 		System.setProperty(
@@ -50,7 +51,7 @@ public class OurVirtUtils {
 		VirtualMachineType instanceType = instanceRequest.getInstanceType();
 		
 		String tempImage = getCloneLocation(instanceRequest.getInstanceId(), properties);
-		OURVIRT.clone(HypervisorType.VBOX, imagePath, tempImage);
+		OURVIRT.clone(HYPERVISOR, imagePath, tempImage);
 		
 		Map<String, Object> conf = new HashMap<String, Object>();
 		conf.put(VirtualMachineConstants.GUEST_USER, 
@@ -73,21 +74,20 @@ public class OurVirtUtils {
 		conf.put(VirtualMachineConstants.START_TIMEOUT, 
 				properties.getProperty(NodeProperties.START_TIMEOUT));
         String macAddress = instanceRequest.getNetParams().getPrivateMacAddress();
-        macAddress = macAddress.replace(":", "");
         conf.put(VirtualMachineConstants.MAC, macAddress);
         
-        VirtualMachineStatus vmStatus = OURVIRT.status(HypervisorType.VBOXSDK, vmName);
+        VirtualMachineStatus vmStatus = OURVIRT.status(HYPERVISOR, vmName);
         if (vmStatus.equals(VirtualMachineStatus.NOT_REGISTERED)) {
 			OURVIRT.register(vmName, conf);
 		}
         
 		for (Entry<String, Object> confEntry : conf.entrySet()) {
-        	OURVIRT.setProperty(HypervisorType.VBOXSDK, vmName, 
+        	OURVIRT.setProperty(HYPERVISOR, vmName, 
         			confEntry.getKey(), confEntry.getValue());
         }
         
-		OURVIRT.create(HypervisorType.VBOXSDK, vmName);
-		OURVIRT.start(HypervisorType.VBOXSDK, vmName);
+		OURVIRT.create(HYPERVISOR, vmName);
+		OURVIRT.start(HYPERVISOR, vmName);
 	}
 	
 	private static String getCloneLocation(String instanceId, Properties properties) {
@@ -96,11 +96,11 @@ public class OurVirtUtils {
 		if (!cloneRootFile.exists()) {
 			cloneRootFile.mkdirs();
 		}
-		return cloneRoot + File.separator + instanceId + WalrusUtils.VDI_EXT;
+		return cloneRoot + File.separator + instanceId + WalrusUtils.IMG_EXT;
 	}
 
 	public static void terminateInstance(String instanceId, Properties properties) throws Exception {
-		VirtualMachineStatus vmStatus = OURVIRT.status(HypervisorType.VBOXSDK, instanceId);
+		VirtualMachineStatus vmStatus = OURVIRT.status(HYPERVISOR, instanceId);
 		
 		new File(getCloneLocation(instanceId, properties)).delete();
 		
@@ -108,13 +108,13 @@ public class OurVirtUtils {
 		if (vmStatus.equals(VirtualMachineStatus.NOT_REGISTERED)) {
 			OURVIRT.register(instanceId, new HashMap<String, String>());
 		}
-		
-		OURVIRT.destroy(HypervisorType.VBOXSDK, instanceId);
+		OURVIRT.stop(HYPERVISOR, instanceId);
+		OURVIRT.destroy(HYPERVISOR, instanceId);
 	}
 	
 	public static void rebootInstance(String instanceId, String imageId, Properties properties) throws Exception {
 		
-		VirtualMachineStatus vmStatus = OURVIRT.status(HypervisorType.VBOXSDK, 
+		VirtualMachineStatus vmStatus = OURVIRT.status(HYPERVISOR, 
 				instanceId);
 		
 		if (vmStatus.equals(VirtualMachineStatus.NOT_CREATED)) {
@@ -130,43 +130,43 @@ public class OurVirtUtils {
 			OURVIRT.register(instanceId, new HashMap<String, String>());
 		} 
 		
-		OURVIRT.reboot(HypervisorType.VBOXSDK, instanceId);
+		OURVIRT.reboot(HYPERVISOR, instanceId);
 		
 	}
 
 	public static String getInstanceIP(String instanceId) {
 		try {
-			return (String) OURVIRT.getProperty(HypervisorType.VBOXSDK, instanceId, VirtualMachineConstants.IP);
+			return (String) OURVIRT.getProperty(HYPERVISOR, instanceId, VirtualMachineConstants.IP);
 		} catch (Exception e) {
 			return null;
 		}
 	}
 
 	public static void assignAddress(String instanceId, String publicIp) throws Exception {
-		VirtualMachineStatus vmStatus = OURVIRT.status(HypervisorType.VBOXSDK, instanceId);
+		VirtualMachineStatus vmStatus = OURVIRT.status(HYPERVISOR, instanceId);
 		
 		if (vmStatus.equals(VirtualMachineStatus.NOT_REGISTERED)) {
 			OURVIRT.register(instanceId, new HashMap<String, String>());
 		}
 			
-		OURVIRT.setProperty(HypervisorType.VBOXSDK, instanceId, 
+		OURVIRT.setProperty(HYPERVISOR, instanceId, 
 				VirtualMachineConstants.IP, publicIp);
 	}
 	
 	public static CPUStats getCPUStats(String instanceId) throws Exception {
-		return OURVIRT.getCPUStats(HypervisorType.VBOXSDK, instanceId);
+		return OURVIRT.getCPUStats(HYPERVISOR, instanceId);
 	}
 	
 	public static NetworkStats getNetworkStats(String instanceId) throws Exception {
-		return OURVIRT.getNetworkStats(HypervisorType.VBOXSDK, instanceId);
+		return OURVIRT.getNetworkStats(HYPERVISOR, instanceId);
 	}
 	
 	public static List<DiskStats> getDiskStats(String instanceId) throws Exception {
-		return OURVIRT.getDiskStats(HypervisorType.VBOXSDK, instanceId);
+		return OURVIRT.getDiskStats(HYPERVISOR, instanceId);
 	}
 	
 	private static VirtualMachineStatus getStatus(String instanceId) throws Exception {
-		return OURVIRT.status(HypervisorType.VBOXSDK, instanceId);
+		return OURVIRT.status(HYPERVISOR, instanceId);
 	}
 	
 }
