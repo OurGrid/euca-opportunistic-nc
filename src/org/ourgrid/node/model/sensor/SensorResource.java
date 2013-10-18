@@ -1,6 +1,6 @@
 package org.ourgrid.node.model.sensor;
 
-import java.util.ArrayList;
+import java.util.List;
 
 import edu.ucsb.eucalyptus.MetricsResourceType;
 import edu.ucsb.eucalyptus.SensorsResourceType;
@@ -9,12 +9,11 @@ public class SensorResource extends SensorsResourceType {
 	private static final long serialVersionUID = 1L;
 	
 	public SensorResource(String resourceName, String resourceType, String resourceUuid, 
-			ArrayList<MetricsResourceType> metrics) {
+			List<MetricsResourceType> metrics) {
 		setResourceName(resourceName);
 		setResourceType(resourceType);
 		setResourceUuid(resourceUuid);
-		//FIXME
-		//setMetrics(MetricsResourceType[](metrics.toArray()));
+		setMetrics((MetricsResourceType[]) metrics.toArray());
 	}
 	
 	@Override

@@ -4,22 +4,19 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.joda.time.Period;
-import org.ourgrid.node.util.Sensor;
 
-public class SensorResourceCache {
+public class SensorCache {
 	
 	private long collectionIntervalTimeMs;
 	private int historySize;
 	private boolean initialized;
 	private boolean suspendPolling;
-	private int maxResources;
 	private int usedResources;
 	private Period lastPolled;
 	private Period intervalPolled;
 	private List<SensorResource> sensorResources;
 	
-	public SensorResourceCache() {
-		this.maxResources = Sensor.MAX_SENSOR_RESOURCES;
+	public SensorCache() {
 		this.collectionIntervalTimeMs = 0;
 		this.historySize = 0;
 		this.lastPolled = Period.ZERO;
@@ -52,12 +49,6 @@ public class SensorResourceCache {
 	public void setSuspendPolling(boolean suspendPolling) {
 		this.suspendPolling = suspendPolling;
 	}
-	public int getMaxResources() {
-		return maxResources;
-	}
-	public void setMaxResources(int maxResources) {
-		this.maxResources = maxResources;
-	}
 	public int getUsedResources() {
 		return usedResources;
 	}
@@ -81,5 +72,9 @@ public class SensorResourceCache {
 	}
 	public void setSensorResources(List<SensorResource> sensorResources) {
 		this.sensorResources = sensorResources;
+	}
+
+	public void addResource(SensorResource sensorResource) {
+		sensorResources.add(sensorResource);
 	}
 }

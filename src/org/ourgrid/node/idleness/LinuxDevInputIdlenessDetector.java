@@ -40,7 +40,7 @@ public class LinuxDevInputIdlenessDetector implements Runnable, IdlenessChecker 
 		
 		try {
 			ProcessBuilder pb = new ProcessBuilder(idlenessCmdLocation, 
-	                idlenessTime.toString());
+					idlenessTime.toString());
 			int exitValue = pb.start().waitFor();
 			return exitValue == 1;
 		} catch (Exception e) {

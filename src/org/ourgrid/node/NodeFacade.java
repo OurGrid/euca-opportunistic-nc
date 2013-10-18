@@ -2,9 +2,12 @@ package org.ourgrid.node;
 
 import java.io.IOException;
 import java.util.Calendar;
+import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
 import org.hyperic.sigar.SigarException;
@@ -14,9 +17,13 @@ import org.ourgrid.node.idleness.LinuxDevInputIdlenessDetector;
 import org.ourgrid.node.model.InstanceRepository;
 import org.ourgrid.node.model.Resources;
 import org.ourgrid.node.model.VBR;
+import org.ourgrid.node.model.sensor.SensorCache;
+import org.ourgrid.node.model.sensor.SensorResource;
 import org.ourgrid.node.util.NetUtils;
+import org.ourgrid.node.util.NodeProperties;
 import org.ourgrid.node.util.OurVirtUtils;
 import org.ourgrid.node.util.ResourcesInfoGatherer;
+import org.ourgrid.node.util.Sensor;
 import org.ourgrid.node.util.VBRUtils;
 
 import edu.ucsb.eucalyptus.InstanceType;
@@ -74,9 +81,10 @@ public class NodeFacade implements IdlenessListener {
 	private ResourcesInfoGatherer resourcesGatherer;
 	private Properties properties;
 	private IdlenessChecker idlenessChecker;
-	private Executor threadPool = Executors.newFixedThreadPool(10);
+	private Executor threadPool = Executors.newFixedThreadPool(20);
+	private ScheduledExecutorService sensorExecutor = Executors.newScheduledThreadPool(1);
+	private Sensor sensor;
 
-	
 	public NodeFacade(Properties properties, 
 			IdlenessChecker iChecker,
 			ResourcesInfoGatherer resIG,
@@ -109,8 +117,14 @@ public class NodeFacade implements IdlenessListener {
 				new LinuxDevInputIdlenessDetector(properties);
 		idlenessDecector.addListener(this);
 		idlenessDecector.init();
+		this.idlenessChecker = idlenessDecector;
 		
-		this.idlenessChecker = idlenessDecector; 
+		String pollingIntervalStr = properties.getProperty(
+				NodeProperties.SENSOR_POLLING_INTERVAL);
+		
+		long pollingInterval = Long.valueOf(pollingIntervalStr) * 1000;
+		this.sensor = new Sensor(pollingInterval, instanceRepository);
+		sensorExecutor.schedule(sensor, pollingInterval, TimeUnit.MILLISECONDS);
 	}
 	
 	private NodeFacade() {
@@ -472,7 +486,6 @@ public class NodeFacade implements IdlenessListener {
 
 	public NcBundleInstanceResponse bundleInstance(
 			NcBundleInstance ncBundleInstance) {
-		
 		checkNodeControllerAvailable();
 
 		NcBundleInstanceResponse bundleInstanceResponse = new NcBundleInstanceResponse();
@@ -547,11 +560,13 @@ public class NodeFacade implements IdlenessListener {
 		describeSensors.setUserId(describeSensorsRequest.getUserId());
 		describeSensors.setCorrelationId(describeSensorsRequest.getCorrelationId());
 		
-		
-		SensorsResourceType[] sensorResources = new SensorsResourceType[1];
-//		sensorResources[0] = new SensorResource(null, null, null, null, null, null);
-		
-		describeSensors.setSensorsResources(null);
+		SensorCache cache = sensor.getCache();
+		List<SensorResource> resources = cache.getSensorResources();
+		SensorsResourceType[] sensorResources = new SensorsResourceType[resources.size()];
+		for (int i = 0; i < sensorResources.length; i++) {
+			sensorResources[i] = resources.get(i);
+		}
+		describeSensors.setSensorsResources(sensorResources);
 		
 		describeSensorsResponse.setNcDescribeSensorsResponse(describeSensors);
 		

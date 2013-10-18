@@ -1,83 +1,60 @@
 package org.ourgrid.node.util;
 
 import java.util.ArrayList;
+import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
+import org.ourgrid.node.model.InstanceRepository;
 import org.ourgrid.node.model.sensor.CounterType;
 import org.ourgrid.node.model.sensor.InstanceStat;
+import org.ourgrid.node.model.sensor.MetricCounter;
+import org.ourgrid.node.model.sensor.MetricDimension;
 import org.ourgrid.node.model.sensor.MetricDimension.DimensionName;
+import org.ourgrid.node.model.sensor.MetricValue;
+import org.ourgrid.node.model.sensor.SensorMetric;
 import org.ourgrid.node.model.sensor.SensorMetric.MetricName;
 import org.ourgrid.node.model.sensor.SensorResource;
-import org.ourgrid.node.model.sensor.SensorResourceCache;
+import org.ourgrid.node.model.sensor.SensorCache;
 import org.ourgrid.virt.model.CPUStats;
 import org.ourgrid.virt.model.DiskStats;
 import org.ourgrid.virt.model.NetworkStats;
 
+import edu.ucsb.eucalyptus.InstanceType;
+import edu.ucsb.eucalyptus.MetricCounterType;
+import edu.ucsb.eucalyptus.MetricDimensionsType;
+import edu.ucsb.eucalyptus.MetricDimensionsValuesType;
+import edu.ucsb.eucalyptus.MetricsResourceType;
+
 public class Sensor implements Runnable {
-	
-	private static final long DEFAULT_SLEEP_DURATION = 15000;
-	private static final long MIN_SLEEP_DURATION = 5000;
-	private long nextSleepDurationMs = DEFAULT_SLEEP_DURATION;
-	private int pollingInterval;
-	private static Sensor sensorM;
-	private SensorResourceCache sensorState;
 	
 	public static final int MAX_SENSOR_RESOURCES = 2048;
 	
-	private Sensor(int pollingInterval) {
-		this.setPollingInterval(pollingInterval);
-	}
+	private static final Logger LOGGER = Logger.getLogger(Sensor.class);
 	
-	public static Sensor getInstance(int pollingInterval) {
-		
-		if (sensorM == null) {
-			sensorM = new Sensor(pollingInterval);
-		}
-		
-		return sensorM;
-	}
+	private long pollingInterval;
+	private SensorCache sensorState;
+	private InstanceRepository instanceRepository;
 	
-	public int getPollingInterval() {
-		return pollingInterval;
-	}
-	
-	public void setPollingInterval(int pollingInterval) {
+	public Sensor(long pollingInterval, InstanceRepository instanceRepository) {
+		this.instanceRepository = instanceRepository;
 		this.pollingInterval = pollingInterval;
 	}
 	
 	@Override
 	public void run() {
 		if (sensorState == null) {
-			sensorState = new SensorResourceCache();
+			sensorState = new SensorCache();
 		}
-		
 		try {
-			monitorInstancesResources();
+			refreshResources(getCurrentResourcesNames());
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			LOGGER.error("Could not retrieve metrics.", e);
 		}
 	}
 	
-	private void monitorInstancesResources() throws Exception {
-		while (true) {
-			Thread.sleep(nextSleepDurationMs);
-			
-			long startMs = System.currentTimeMillis();
-			
-			refreshResources(getCurrentResourcesNames());
-			
-			long refreshDelay = System.currentTimeMillis() - startMs;
-			
-			nextSleepDurationMs = nextSleepDurationMs - refreshDelay;
-			if (nextSleepDurationMs < MIN_SLEEP_DURATION) {
-				nextSleepDurationMs = MIN_SLEEP_DURATION;
-			}
-		}
-	}
-
 	private void refreshResources(List<String> currentResourcesNames) throws Exception {
 		Map<String,List<InstanceStat>> stats = getInstancesStats(currentResourcesNames);
 		
@@ -86,25 +63,74 @@ public class Sensor implements Runnable {
 				addSensorValue(iStat);
 			}
 		}
-		
 	}
 
 	private void addSensorValue(InstanceStat iStat) {
-		//TODO
-//		if (getSensorResource(iStat.getInstanceId())) {
-//		}
-		
+		SensorResource sensorResource = getSensorResource(iStat.getInstanceId());
+		String metricName = iStat.getMetricName();
+		for (MetricsResourceType metric : sensorResource.getMetrics()) {
+			if (!metric.getMetricName().equals(metricName)) {
+				continue;
+			}
+			addToMetric(iStat, metric);
+			return;
+		}
+		SensorMetric metric = new SensorMetric(metricName, new MetricCounterType[]{});
+		sensorResource.addMetrics(metric);
+		addToMetric(iStat, metric);
 	}
 
+	private void addToMetric(InstanceStat iStat, MetricsResourceType metric) {
+		for (MetricCounterType counter : metric.getCounters()) {
+			if (!counter.getType().equals(
+					iStat.getCounterType().getName())) {
+				continue;
+			}
+			addToCounter(iStat, counter);
+			return;
+		}
+		MetricCounter metricCounter = new MetricCounter(pollingInterval, 
+				new MetricDimensionsType[]{}, 0L, iStat.getCounterType().getName());
+		metric.addCounters(metricCounter);
+		addToCounter(iStat, metricCounter);
+	}
+
+	private void addToCounter(InstanceStat iStat, MetricCounterType counter) {
+		for (MetricDimensionsType dimension : counter.getDimensions()) {
+			if (!dimension.getDimensionName().equals(
+					iStat.getDimensionName())) {
+				continue;
+			}
+			addToDimension(iStat, dimension);
+			return;
+		}
+		MetricDimension metricDimension = new MetricDimension(iStat.getDimensionName(), 
+				new MetricDimensionsValuesType[]{});
+		counter.addDimensions(metricDimension);
+		addToDimension(iStat, metricDimension);
+	}
+
+	private void addToDimension(InstanceStat iStat, MetricDimensionsType dimension) {
+		MetricDimension dimensionImpl = (MetricDimension) dimension;
+		GregorianCalendar calendar = new GregorianCalendar();
+		calendar.setTimeInMillis(iStat.getTimestamp());
+		MetricDimensionsValuesType value = new MetricValue(calendar, iStat.getValue());
+		dimensionImpl.addValue(value);
+	}
+	
 	private SensorResource getSensorResource(String resourceName) {
-		
 		for (SensorResource sR : sensorState.getSensorResources()) {
 			if (sR.getResourceName().equals(resourceName)) {
 				return sR;
 			}
 		}
-		//FIXME
-		return new SensorResource(resourceName, "instance", "", null);
+		InstanceType instance = instanceRepository.getInstance(resourceName);
+		
+		SensorResource sensorResource = new SensorResource(resourceName, "instance", 
+				instance.getUuid(), 
+				new ArrayList<MetricsResourceType>());
+		sensorState.addResource(sensorResource);
+		return sensorResource;
 	}
 
 	private Map<String,List<InstanceStat>> getInstancesStats(
@@ -113,7 +139,7 @@ public class Sensor implements Runnable {
 		Map<String,List<InstanceStat>> instancesStats = new HashMap<String,List<InstanceStat>>();
 		
 		for (String resourceName : currentResourcesNames) {
-			instancesStats.put(resourceName,buildInstanceStatObj(resourceName));
+			instancesStats.put(resourceName, buildInstanceStatObj(resourceName));
 		}
 		
 		return instancesStats;
@@ -218,10 +244,14 @@ public class Sensor implements Runnable {
 
 	private List<String> getCurrentResourcesNames() {
 		List<String> resourcesNames = new ArrayList<String>();
-		
-		for (SensorResource sensorRes : sensorState.getSensorResources()) {
-			resourcesNames.add(sensorRes.getResourceName());
+		List<InstanceType> instances = instanceRepository.getInstances();
+		for (InstanceType instance : instances) {
+			resourcesNames.add(instance.getInstanceId());
 		}
 		return resourcesNames;
+	}
+	
+	public SensorCache getCache() {
+		return sensorState;
 	}
 }

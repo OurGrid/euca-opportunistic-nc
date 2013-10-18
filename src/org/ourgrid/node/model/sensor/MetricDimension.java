@@ -2,23 +2,12 @@ package org.ourgrid.node.model.sensor;
 
 import java.util.LinkedList;
 
+import org.ourgrid.node.util.Sensor;
+
 import edu.ucsb.eucalyptus.MetricDimensionsType;
 import edu.ucsb.eucalyptus.MetricDimensionsValuesType;
 
 public class MetricDimension extends MetricDimensionsType {
-	
-	public LinkedList<MetricDimensionsValuesType> getValuesLinkedList() {
-		
-		LinkedList<MetricDimensionsValuesType> values = 
-				new LinkedList<MetricDimensionsValuesType>();
-
-		for (MetricDimensionsValuesType value : getValues()) {
-			values.add(value);
-		}
-		
-		return values;
-		
-	}
 	
 	public static enum DimensionName {
 		DEFAULT("default"), TOTAL("total");
@@ -32,6 +21,19 @@ public class MetricDimension extends MetricDimensionsType {
 		public String getDimensionNameStr() {
 			return dimensionNameStr;
 		}
+	}
+	
+	public void addValue(MetricDimensionsValuesType value) {
+		LinkedList<MetricDimensionsValuesType> values = 
+				new LinkedList<MetricDimensionsValuesType>();
+		for (MetricDimensionsValuesType eachValue : getValues()) {
+			values.add(eachValue);
+		}
+		values.add(value);
+		if (values.size() > Sensor.MAX_SENSOR_RESOURCES) {
+			values.removeFirst();
+		}
+		setValues((MetricDimensionsValuesType[]) values.toArray());
 	}
 	
 	public MetricDimension(String dimensionName, MetricDimensionsValuesType[] values) {

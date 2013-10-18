@@ -24,4 +24,5 @@ public class NodeProperties {
 	public static final String BRIDGED_INTERFACE = "bridged.interface";
 	public static final String START_TIMEOUT = "start.timeout";
 	public static final String PAE_ENABLED = "vm.pae.enabled";
+	public static final String SENSOR_POLLING_INTERVAL = "sensor.polling.interval";
 }
