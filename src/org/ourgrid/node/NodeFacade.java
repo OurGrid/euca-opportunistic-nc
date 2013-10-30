@@ -2,7 +2,9 @@ package org.ourgrid.node;
 
 import java.io.IOException;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -19,18 +21,23 @@ import org.ourgrid.node.model.Resources;
 import org.ourgrid.node.model.VBR;
 import org.ourgrid.node.model.sensor.SensorCache;
 import org.ourgrid.node.model.sensor.SensorResource;
+import org.ourgrid.node.model.volume.Volume;
 import org.ourgrid.node.util.NetUtils;
 import org.ourgrid.node.util.NodeProperties;
 import org.ourgrid.node.util.OurVirtUtils;
 import org.ourgrid.node.util.ResourcesInfoGatherer;
 import org.ourgrid.node.util.Sensor;
 import org.ourgrid.node.util.VBRUtils;
+import org.ourgrid.node.util.VolumeUtils;
 
 import edu.ucsb.eucalyptus.InstanceType;
 import edu.ucsb.eucalyptus.NcAssignAddress;
 import edu.ucsb.eucalyptus.NcAssignAddressResponse;
 import edu.ucsb.eucalyptus.NcAssignAddressResponseType;
 import edu.ucsb.eucalyptus.NcAssignAddressType;
+import edu.ucsb.eucalyptus.NcAttachVolume;
+import edu.ucsb.eucalyptus.NcAttachVolumeResponse;
+import edu.ucsb.eucalyptus.NcAttachVolumeType;
 import edu.ucsb.eucalyptus.NcBundleInstance;
 import edu.ucsb.eucalyptus.NcBundleInstanceResponse;
 import edu.ucsb.eucalyptus.NcBundleInstanceResponseType;
@@ -78,6 +85,7 @@ public class NodeFacade implements IdlenessListener {
 	private static NodeFacade instance = null;
 	
 	private InstanceRepository instanceRepository = new InstanceRepository();
+	private Map<String, Volume> volumes = new HashMap<String, Volume>(); 
 	private ResourcesInfoGatherer resourcesGatherer;
 	private Properties properties;
 	private IdlenessChecker idlenessChecker;
@@ -581,5 +589,25 @@ public class NodeFacade implements IdlenessListener {
 		}
 		
 		return true;
+	}
+
+	public NcAttachVolumeResponse attachVolume(NcAttachVolume ncAttachVolume) {
+		NcAttachVolumeType attachVolumeRequest = ncAttachVolume.getNcAttachVolume();
+		String instanceId = attachVolumeRequest.getInstanceId();
+		String volumeId = attachVolumeRequest.getVolumeId();
+		String attachmentToken = attachVolumeRequest.getRemoteDev();
+		
+		Volume volume = new Volume();
+		volume.setId(volumeId);
+		volume.setState(Volume.State.ATTACHING);
+		volumes.put(volumeId, volume);
+		try {
+			VolumeUtils.connectEBSVolume(instanceId, 
+					attachmentToken, properties);
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+		
+		return null;
 	}
 }

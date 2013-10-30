@@ -8,7 +8,7 @@
 #include <stdbool.h>
 
 printUsage() {
-  printf("%s\n", "Usage: iscsi-utils discovery <ip> | iscsi-utils login <store> <username> <password>  | iscsi-utils getdev <store>");
+  printf("%s\n", "Usage: iscsi-utils discovery <ip> | iscsi-utils login <store> <username> <password> | iscsi-utils logout <store> | iscsi-utils getdev <store> | iscsi-utils devown <devpath> <user>");
 }
 
 int _system(const char *template, ...) {
@@ -31,6 +31,10 @@ int update(char *store, char *sessionKey, char *value) {
 
 int login(char *store) {
   return _system("iscsiadm -m node -T %s -l", store);
+}
+
+int logout(char *store) {
+	return _system("iscsiadm -m node -T %s -u", store);
 }
 
 char *trim(char *s) {
@@ -64,7 +68,7 @@ int getdev(char *store) {
       regex_t regexDev;
       regcomp(&regexDev, ".*Attached scsi disk (\\S+).*", REG_ICASE|REG_EXTENDED);
       if (regexec(&regexDev, path, 2, match, 0) == 0) {
-        printf("/dev/%.*s\n", match[1].rm_eo - match[1].rm_so, &path[match[1].rm_so]);
+        printf("/dev/%.*s", match[1].rm_eo - match[1].rm_so, &path[match[1].rm_so]);
         foundDev = true;
         break;
       }
@@ -77,6 +81,10 @@ int getdev(char *store) {
     return pclose(fp);
   }  
   return 1;
+}
+
+int devown(char *devpath, char *user) {
+	return _system("chown %s %s", user, devpath);
 }
 
 int main(int argc, char *argv[]) {
@@ -120,6 +128,28 @@ int main(int argc, char *argv[]) {
       return 1;  
     }
     if (getdev(argv[2]) != 0) {
+      return 1;
+    }
+    return 0;
+  }
+  
+  if (strcmp(method, "devown") == 0) {
+    if (argc < 4) {
+      printUsage();
+      return 1;  
+    }
+    if (devown(argv[2], argv[3]) != 0) {
+      return 1;
+    }
+    return 0;
+  }
+  
+  if (strcmp(method, "logout") == 0) {
+    if (argc < 3) {
+      printUsage();
+      return 1;  
+    }
+    if (logout(argv[2]) != 0) {
       return 1;
     }
     return 0;

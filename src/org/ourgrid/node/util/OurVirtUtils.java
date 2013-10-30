@@ -75,6 +75,8 @@ public class OurVirtUtils {
 				properties.getProperty(NodeProperties.START_TIMEOUT));
         String macAddress = instanceRequest.getNetParams().getPrivateMacAddress();
         conf.put(VirtualMachineConstants.MAC, macAddress);
+        conf.put(VirtualMachineConstants.USE_USB_HUB, Boolean.TRUE.toString());
+        conf.put(VirtualMachineConstants.USE_MONITOR, Boolean.TRUE.toString());
         
         VirtualMachineStatus vmStatus = OURVIRT.status(HYPERVISOR, vmName);
         if (vmStatus.equals(VirtualMachineStatus.NOT_REGISTERED)) {
@@ -169,4 +171,7 @@ public class OurVirtUtils {
 		return OURVIRT.status(HYPERVISOR, instanceId);
 	}
 	
+	public static void attachDevice(String instanceID, String devName) throws Exception {
+		OURVIRT.attachDevice(HYPERVISOR, instanceID, devName);
+	}
 }

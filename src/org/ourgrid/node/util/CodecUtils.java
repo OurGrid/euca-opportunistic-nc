@@ -11,5 +11,9 @@ public class CodecUtils {
 			throws UnsupportedEncodingException, SignatureException {
 		return new String(Base64.encodeBase64(content), "UTF-8");
 	}
+	
+	public static byte[] decodeBase64(String content) {
+		return Base64.decodeBase64(content);
+	}
 
 }
