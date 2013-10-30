@@ -616,7 +616,14 @@ public class NodeFacade implements IdlenessListener {
 
 	public NcDetachVolumeResponse detachVolume(NcDetachVolume ncDetachVolume) {
 		NcDetachVolumeType detachVolumeRequest = ncDetachVolume.getNcDetachVolume();
+		String instanceId = detachVolumeRequest.getInstanceId();
 		String attachmentToken = detachVolumeRequest.getRemoteDev();
+		try {
+			VolumeUtils.disconnectEBSVolume(instanceId, 
+					attachmentToken, properties);
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 		
 		return null;
 	}
