@@ -54,6 +54,9 @@ import edu.ucsb.eucalyptus.NcDescribeSensors;
 import edu.ucsb.eucalyptus.NcDescribeSensorsResponse;
 import edu.ucsb.eucalyptus.NcDescribeSensorsResponseType;
 import edu.ucsb.eucalyptus.NcDescribeSensorsType;
+import edu.ucsb.eucalyptus.NcDetachVolume;
+import edu.ucsb.eucalyptus.NcDetachVolumeResponse;
+import edu.ucsb.eucalyptus.NcDetachVolumeType;
 import edu.ucsb.eucalyptus.NcPowerDown;
 import edu.ucsb.eucalyptus.NcPowerDownResponse;
 import edu.ucsb.eucalyptus.NcPowerDownResponseType;
@@ -607,6 +610,13 @@ public class NodeFacade implements IdlenessListener {
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
+		
+		return null;
+	}
+
+	public NcDetachVolumeResponse detachVolume(NcDetachVolume ncDetachVolume) {
+		NcDetachVolumeType detachVolumeRequest = ncDetachVolume.getNcDetachVolume();
+		String attachmentToken = detachVolumeRequest.getRemoteDev();
 		
 		return null;
 	}

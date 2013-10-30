@@ -19,7 +19,8 @@ public class PWCBHandler implements CallbackHandler {
         	// the private key password 
             WSPasswordCallback pwcb = (WSPasswordCallback)callbacks[i];
                
-            if(pwcb.getIdentifier().equals("1") ) {
+            if(pwcb.getIdentifier().equals("1") || 
+            		pwcb.getIdentifier().equals("euca-cloud")) {
             	pwcb.setPassword("eucalyptus");
                 return;
             }         

@@ -42,7 +42,7 @@ public class ISCSIUtils {
 		}
 	}
 	
-	public static String getDeviceName(String store, Properties properties) throws Exception {
+	public static String getLocalDevicePath(String store, Properties properties) throws Exception {
 		String cmdLocation = getCmdLocation(properties);
 		
 		ProcessBuilder processBuilder = new ProcessBuilder("sudo", CMD, "getdev", store);

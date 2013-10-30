@@ -27,24 +27,23 @@ public class VolumeUtils {
 			//TODO
 		} else {
 			String decryptedPassword = decryptToken(volumeData.getEncryptedPassword(), properties);
-			String devicePath = getDeviceName(properties, volumeData,
-					decryptedPassword);
-			if (devicePath != null) {
+			String devicePath = connectISCSITarget(volumeData, decryptedPassword, properties);
+			if (checkDevice(devicePath)) {
 				OurVirtUtils.attachDevice(instanceId, devicePath);
 			}
 		}
 	}
-
-	private static String getDeviceName(Properties properties,
-			VolumeData volumeData, String decryptedPassword) throws Exception {
-		String devicePath = connectISCSITarget(volumeData, decryptedPassword, properties);
-		if (checkDevice(devicePath)) {
-			return devicePath;
-		} else {
-			return null;
+	
+	public static void disconnectEBSVolume(String instanceId, String attachmentToken,
+			Properties properties) throws Exception {
+		VolumeData volumeData = VolumeData.parse(attachmentToken);
+		String localDevicePath = ISCSIUtils.getLocalDevicePath(volumeData.getStore(), properties);
+		if (localDevicePath != null) {
+			OurVirtUtils.detachDevice(instanceId, localDevicePath);
+			ISCSIUtils.logout(volumeData.getStore(), properties);
 		}
 	}
-	
+
 	private static boolean checkDevice(String devicePath) {
 		if (!HypervisorUtils.isLinuxHost()) {
 			return false;
@@ -65,7 +64,7 @@ public class VolumeUtils {
 		ISCSIUtils.discovery(volumeData.getIp(), properties);
 		String username = "eucalyptus";
 		ISCSIUtils.login(volumeData.getStore(), username, decryptedPassword, properties);
-		String devicePath = ISCSIUtils.getDeviceName(volumeData.getStore(), properties);
+		String devicePath = ISCSIUtils.getLocalDevicePath(volumeData.getStore(), properties);
 		Thread.sleep(3000);
 		String systemUser = System.getProperty("user.name");
 		ISCSIUtils.deviceOwn(devicePath, systemUser, properties);

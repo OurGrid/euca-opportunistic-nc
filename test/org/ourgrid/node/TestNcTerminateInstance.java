@@ -70,7 +70,7 @@ public class TestNcTerminateInstance {
 				instance.getInstanceId(), instance.getUserId());
 
 		String cloneFilePath = properties.getProperty(NodeProperties.CLONEROOT)
-				+ File.separator + instance.getInstanceId() + WalrusUtils.VDI_EXT;
+				+ File.separator + instance.getInstanceId() + WalrusUtils.IMG_EXT;
 
 		File cloneFile = new File(cloneFilePath);
 

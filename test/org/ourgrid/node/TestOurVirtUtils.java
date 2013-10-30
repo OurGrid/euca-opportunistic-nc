@@ -162,7 +162,7 @@ public class TestOurVirtUtils {
 		String tempImage = properties.getProperty(NodeProperties.CLONEROOT)
 				+ File.separator 
 				+ instance.getInstanceId() 
-				+ WalrusUtils.VDI_EXT;
+				+ WalrusUtils.IMG_EXT;
 		
 		Map<String, Object> conf = new HashMap<String, Object>();
 		conf.put(VirtualMachineConstants.GUEST_USER, 
@@ -240,7 +240,7 @@ public class TestOurVirtUtils {
 		String tempImage = properties.getProperty(NodeProperties.CLONEROOT)
 				+ File.separator 
 				+ instance.getInstanceId() 
-				+ WalrusUtils.VDI_EXT;
+				+ WalrusUtils.IMG_EXT;
 		
 		Map<String, Object> conf = new HashMap<String, Object>();
 		conf.put(VirtualMachineConstants.GUEST_USER, 

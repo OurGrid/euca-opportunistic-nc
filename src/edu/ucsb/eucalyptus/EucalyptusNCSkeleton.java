@@ -101,9 +101,7 @@ public class EucalyptusNCSkeleton {
 
 	public edu.ucsb.eucalyptus.NcDetachVolumeResponse ncDetachVolume(
 			edu.ucsb.eucalyptus.NcDetachVolume ncDetachVolume) {
-		// TODO : fill this with the necessary business logic
-		throw new java.lang.UnsupportedOperationException("Please implement "
-				+ this.getClass().getName() + "#ncDetachVolume");
+		return NodeFacade.getInstance().detachVolume(ncDetachVolume);
 	}
 
 	/**
@@ -127,9 +125,7 @@ public class EucalyptusNCSkeleton {
 
 	public edu.ucsb.eucalyptus.NcAttachVolumeResponse ncAttachVolume(
 			edu.ucsb.eucalyptus.NcAttachVolume ncAttachVolume) {
-		// TODO : fill this with the necessary business logic
-		throw new java.lang.UnsupportedOperationException("Please implement "
-				+ this.getClass().getName() + "#ncAttachVolume");
+		return NodeFacade.getInstance().attachVolume(ncAttachVolume);
 	}
 
 	/**

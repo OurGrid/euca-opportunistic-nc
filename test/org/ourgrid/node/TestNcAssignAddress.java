@@ -35,6 +35,7 @@ public class TestNcAssignAddress {
 	public void init() throws Exception {
 		properties = new Properties();
 		properties.load(new FileInputStream("WebContent/WEB-INF/conf/euca.conf"));
+		System.out.println(properties.toString());
 		facade = new NodeFacade(properties, testIChecker, null, instanceRepository);
 		OurVirtUtils.setOurVirt(ourvirtMock);
 	}

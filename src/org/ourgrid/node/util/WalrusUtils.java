@@ -150,7 +150,7 @@ public class WalrusUtils {
 
 		String privateKeyAlias = properties.getProperty(NodeProperties.PRIVATEKEY_ALIAS);
 		String privateKeyPass = properties.getProperty(NodeProperties.PRIVATEKEY_PASS);
-		KeyStore keyStore = getKeyStore(properties);
+		KeyStore keyStore = AuthUtils.getKeyStore(properties);
 		PrivateKey key = (PrivateKey) keyStore.getKey(privateKeyAlias, privateKeyPass.toCharArray());
 		Signature signature = Signature.getInstance("SHA1withRSA");
 		signature.initSign(key);
@@ -164,21 +164,11 @@ public class WalrusUtils {
 		return CodecUtils.encodeBase64(signature.sign());
 	}
 
-	private static KeyStore getKeyStore(Properties properties) 
-			throws KeyStoreException, NoSuchAlgorithmException, CertificateException, FileNotFoundException, IOException {
-		
-		String keyStoreLocation = properties.getProperty(NodeProperties.KEYSTORE_LOCATION);
-		String keyStorePassword = properties.getProperty(NodeProperties.KEYSTORE_PASS);
-		KeyStore  keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
-		keyStore.load(new FileInputStream(keyStoreLocation), keyStorePassword.toCharArray());
-		return keyStore;
-	}
-
 	private static String getNodeCertBase64(Properties properties)
 			throws UnsupportedEncodingException, SignatureException,
 			IOException, FileNotFoundException, KeyStoreException, NoSuchAlgorithmException, CertificateException {
 
-		KeyStore keyStore = getKeyStore(properties);
+		KeyStore keyStore = AuthUtils.getKeyStore(properties);
 		Certificate certificate = keyStore.getCertificate(properties.getProperty(NodeProperties.NODECERT_ALIAS));
 		sun.security.x509.X509CertImpl x509Cert = (sun.security.x509.X509CertImpl)certificate;
 		StringBuilder strBuilder = new StringBuilder();

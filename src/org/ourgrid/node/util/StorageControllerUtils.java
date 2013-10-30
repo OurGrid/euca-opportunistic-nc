@@ -17,8 +17,7 @@ public class StorageControllerUtils {
 			String volumeId, String token, String ip, String iqn, String scURL) 
 					throws Exception {
 		
-//		EucalyptusSCStub eucalyptusSCStub = new EucalyptusSCStub(scURL);
-		EucalyptusSCStub eucalyptusSCStub = new EucalyptusSCStub("http://localhost:8773/services/Storage");
+		EucalyptusSCStub eucalyptusSCStub = new EucalyptusSCStub(scURL);
 		if (useWsSec) {
 			configureRampart(eucalyptusSCStub, wsSecPolicyFilePath);
 		}

@@ -171,7 +171,11 @@ public class OurVirtUtils {
 		return OURVIRT.status(HYPERVISOR, instanceId);
 	}
 	
-	public static void attachDevice(String instanceID, String devName) throws Exception {
-		OURVIRT.attachDevice(HYPERVISOR, instanceID, devName);
+	public static void attachDevice(String instanceID, String localDevicePath) throws Exception {
+		OURVIRT.attachDevice(HYPERVISOR, instanceID, localDevicePath);
+	}
+
+	public static void detachDevice(String instanceId, String localDevicePath) throws Exception {
+		OURVIRT.detachDevice(HYPERVISOR, instanceId, localDevicePath);
 	}
 }
