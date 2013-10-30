@@ -66,11 +66,7 @@ public class VolumeUtils {
 		String username = "eucalyptus";
 		ISCSIUtils.login(volumeData.getStore(), username, decryptedPassword, properties);
 		String devicePath = ISCSIUtils.getDeviceName(volumeData.getStore(), properties);
-		int retries = 3;
-		while (retries > 0 && !(new File(devicePath).exists())) {
-			retries--;
-			Thread.sleep(3000);
-		}
+		Thread.sleep(3000);
 		String systemUser = System.getProperty("user.name");
 		ISCSIUtils.deviceOwn(devicePath, systemUser, properties);
 		return devicePath;
