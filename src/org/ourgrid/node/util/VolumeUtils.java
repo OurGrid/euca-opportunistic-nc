@@ -20,7 +20,7 @@ public class VolumeUtils {
 		return null;
 	}
 
-	public static void connectEBSVolume(String instanceId, String attachmentToken,
+	public static String connectEBSVolume(String instanceId, String attachmentToken,
 			Properties properties) throws Exception {
 		VolumeData volumeData = VolumeData.parse(attachmentToken);
 		if (volumeData.getLun() != null) {
@@ -30,8 +30,10 @@ public class VolumeUtils {
 			String devicePath = connectISCSITarget(volumeData, decryptedPassword, properties);
 			if (checkDevice(devicePath)) {
 				OurVirtUtils.attachDevice(instanceId, devicePath);
+				return devicePath;
 			}
 		}
+		return null;
 	}
 	
 	public static void disconnectEBSVolume(String instanceId, String attachmentToken,

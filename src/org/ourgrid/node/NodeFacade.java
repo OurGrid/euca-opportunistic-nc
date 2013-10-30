@@ -2,9 +2,7 @@ package org.ourgrid.node;
 
 import java.io.IOException;
 import java.util.Calendar;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -21,7 +19,9 @@ import org.ourgrid.node.model.Resources;
 import org.ourgrid.node.model.VBR;
 import org.ourgrid.node.model.sensor.SensorCache;
 import org.ourgrid.node.model.sensor.SensorResource;
-import org.ourgrid.node.model.volume.Volume;
+import org.ourgrid.node.model.volume.VolumeData;
+import org.ourgrid.node.model.volume.VolumeState;
+import org.ourgrid.node.util.ISCSIUtils;
 import org.ourgrid.node.util.NetUtils;
 import org.ourgrid.node.util.NodeProperties;
 import org.ourgrid.node.util.OurVirtUtils;
@@ -37,6 +37,7 @@ import edu.ucsb.eucalyptus.NcAssignAddressResponseType;
 import edu.ucsb.eucalyptus.NcAssignAddressType;
 import edu.ucsb.eucalyptus.NcAttachVolume;
 import edu.ucsb.eucalyptus.NcAttachVolumeResponse;
+import edu.ucsb.eucalyptus.NcAttachVolumeResponseType;
 import edu.ucsb.eucalyptus.NcAttachVolumeType;
 import edu.ucsb.eucalyptus.NcBundleInstance;
 import edu.ucsb.eucalyptus.NcBundleInstanceResponse;
@@ -56,6 +57,7 @@ import edu.ucsb.eucalyptus.NcDescribeSensorsResponseType;
 import edu.ucsb.eucalyptus.NcDescribeSensorsType;
 import edu.ucsb.eucalyptus.NcDetachVolume;
 import edu.ucsb.eucalyptus.NcDetachVolumeResponse;
+import edu.ucsb.eucalyptus.NcDetachVolumeResponseType;
 import edu.ucsb.eucalyptus.NcDetachVolumeType;
 import edu.ucsb.eucalyptus.NcPowerDown;
 import edu.ucsb.eucalyptus.NcPowerDownResponse;
@@ -79,6 +81,7 @@ import edu.ucsb.eucalyptus.NcTerminateInstanceResponseType;
 import edu.ucsb.eucalyptus.NcTerminateInstanceType;
 import edu.ucsb.eucalyptus.NetConfigType;
 import edu.ucsb.eucalyptus.SensorsResourceType;
+import edu.ucsb.eucalyptus.VolumeType;
 
 public class NodeFacade implements IdlenessListener {
 
@@ -88,7 +91,6 @@ public class NodeFacade implements IdlenessListener {
 	private static NodeFacade instance = null;
 	
 	private InstanceRepository instanceRepository = new InstanceRepository();
-	private Map<String, Volume> volumes = new HashMap<String, Volume>(); 
 	private ResourcesInfoGatherer resourcesGatherer;
 	private Properties properties;
 	private IdlenessChecker idlenessChecker;
@@ -248,10 +250,23 @@ public class NodeFacade implements IdlenessListener {
 		try {
 			OurVirtUtils.terminateInstance(instanceId, properties);
 			//			instanceRepository.removeInstance(instanceId);
+			disconnectVolumes(instanceId);
 			InstanceType instance = instanceRepository.getInstance(instanceId);
 			instance.setStateName(InstanceRepository.TEARDOWN_STATE);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
+		}
+	}
+
+	private void disconnectVolumes(String instanceId) {
+		InstanceType instance = instanceRepository.getInstance(instanceId);
+		for (VolumeType volume : instance.getVolumes()) {
+			try {
+				String remoteDev = volume.getRemoteDev();
+				ISCSIUtils.logout(VolumeData.parse(remoteDev).getStore(), properties);
+			} catch (Exception e) {
+				LOGGER.warn("Error while disconnecting ISCSI target.", e);
+			}
 		}
 	}
 
@@ -595,36 +610,86 @@ public class NodeFacade implements IdlenessListener {
 	}
 
 	public NcAttachVolumeResponse attachVolume(NcAttachVolume ncAttachVolume) {
+		
+		checkNodeControllerAvailable();
+		
 		NcAttachVolumeType attachVolumeRequest = ncAttachVolume.getNcAttachVolume();
 		String instanceId = attachVolumeRequest.getInstanceId();
 		String volumeId = attachVolumeRequest.getVolumeId();
 		String attachmentToken = attachVolumeRequest.getRemoteDev();
 		
-		Volume volume = new Volume();
-		volume.setId(volumeId);
-		volume.setState(Volume.State.ATTACHING);
-		volumes.put(volumeId, volume);
+		LOGGER.info("Attaching volume [" + volumeId + "] to instance [" + 
+				attachVolumeRequest.getInstanceId()  + "].");
+		
+		VolumeType volume = new VolumeType();
+		volume.setVolumeId(volumeId);
+		volume.setLocalDev(attachVolumeRequest.getLocalDev());
+		volume.setRemoteDev(attachVolumeRequest.getRemoteDev());
+		volume.setState(VolumeState.ATTACHING.getName());
+		InstanceType instance = instanceRepository.getInstance(instanceId);
+		instance.addVolumes(volume);
 		try {
-			VolumeUtils.connectEBSVolume(instanceId, 
+			String localDevicePath = VolumeUtils.connectEBSVolume(instanceId, 
 					attachmentToken, properties);
+			volume.setState(VolumeState.ATTACHED.getName());
+			if (localDevicePath != null) {
+				volume.setLocalDev(localDevicePath.split("/")[2]);
+			}
 		} catch (Exception e) {
+			volume.setState(VolumeState.ATTACHING_FAILED.getName());
 			throw new RuntimeException(e);
 		}
 		
-		return null;
+		NcAttachVolumeResponse response = new NcAttachVolumeResponse();
+		NcAttachVolumeResponseType attachVolumeResponse = new NcAttachVolumeResponseType();
+		attachVolumeResponse.set_return(true);
+		attachVolumeResponse.setCorrelationId(attachVolumeRequest.getCorrelationId());
+		attachVolumeResponse.setUserId(attachVolumeRequest.getUserId());
+		response.setNcAttachVolumeResponse(attachVolumeResponse);
+		
+		return response;
 	}
 
 	public NcDetachVolumeResponse detachVolume(NcDetachVolume ncDetachVolume) {
+		
+		checkNodeControllerAvailable();
+		
 		NcDetachVolumeType detachVolumeRequest = ncDetachVolume.getNcDetachVolume();
 		String instanceId = detachVolumeRequest.getInstanceId();
 		String attachmentToken = detachVolumeRequest.getRemoteDev();
+		String volumeId = detachVolumeRequest.getVolumeId();
+		
+		LOGGER.info("Detaching volume [" + volumeId + "] from instance [" + 
+				instanceId  + "].");
+		
+		InstanceType instance = instanceRepository.getInstance(instanceId);
+		VolumeType volume = getVolume(instance, volumeId);
+		volume.setState(VolumeState.DETACHING.getName());
 		try {
 			VolumeUtils.disconnectEBSVolume(instanceId, 
 					attachmentToken, properties);
+			volume.setState(VolumeState.DETACHED.getName());
 		} catch (Exception e) {
+			volume.setState(VolumeState.DETACHING_FAILED.getName());
 			throw new RuntimeException(e);
 		}
 		
+		NcDetachVolumeResponse response = new NcDetachVolumeResponse();
+		NcDetachVolumeResponseType detachVolumeResponse = new NcDetachVolumeResponseType();
+		detachVolumeResponse.set_return(true);
+		detachVolumeResponse.setCorrelationId(detachVolumeRequest.getCorrelationId());
+		detachVolumeResponse.setUserId(detachVolumeRequest.getUserId());
+		response.setNcDetachVolumeResponse(detachVolumeResponse);
+		
+		return response;
+	}
+
+	private VolumeType getVolume(InstanceType instance, String volumeId) {
+		for (VolumeType volume : instance.getVolumes()) {
+			if (volume.getVolumeId().equals(volumeId)) {
+				return volume;
+			}
+		}
 		return null;
 	}
 }
