@@ -9,6 +9,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.codec.binary.Base64;
 import org.apache.log4j.Logger;
 import org.hyperic.sigar.SigarException;
 import org.ourgrid.node.idleness.IdlenessChecker;
@@ -59,6 +60,10 @@ import edu.ucsb.eucalyptus.NcDetachVolume;
 import edu.ucsb.eucalyptus.NcDetachVolumeResponse;
 import edu.ucsb.eucalyptus.NcDetachVolumeResponseType;
 import edu.ucsb.eucalyptus.NcDetachVolumeType;
+import edu.ucsb.eucalyptus.NcGetConsoleOutput;
+import edu.ucsb.eucalyptus.NcGetConsoleOutputResponse;
+import edu.ucsb.eucalyptus.NcGetConsoleOutputResponseType;
+import edu.ucsb.eucalyptus.NcGetConsoleOutputType;
 import edu.ucsb.eucalyptus.NcPowerDown;
 import edu.ucsb.eucalyptus.NcPowerDownResponse;
 import edu.ucsb.eucalyptus.NcPowerDownResponseType;
@@ -691,5 +696,32 @@ public class NodeFacade implements IdlenessListener {
 			}
 		}
 		return null;
+	}
+
+	public NcGetConsoleOutputResponse getConsoleOutput(
+			NcGetConsoleOutput ncGetConsoleOutput) {
+		
+		NcGetConsoleOutputType getConsoleOutputResquest = 
+				ncGetConsoleOutput.getNcGetConsoleOutput();
+		String instanceId = getConsoleOutputResquest.getInstanceId();
+		String encodedConsoleOutput = null;
+		try {
+			String consoleOutput = OurVirtUtils.getConsoleOutput(instanceId);
+			encodedConsoleOutput = new String(Base64.encodeBase64(consoleOutput.getBytes()));
+		} catch (Exception e) {
+			throw new RuntimeException("Error when trying to get console output", e);
+		}
+		
+		NcGetConsoleOutputResponse response = new NcGetConsoleOutputResponse();
+		NcGetConsoleOutputResponseType getConsoleOutputResponse = 
+				new NcGetConsoleOutputResponseType();
+		getConsoleOutputResponse.set_return(true);
+		getConsoleOutputResponse.setCorrelationId(
+				getConsoleOutputResquest.getCorrelationId());
+		getConsoleOutputResponse.setUserId(getConsoleOutputResquest.getUserId());
+		getConsoleOutputResponse.setConsoleOutput(encodedConsoleOutput);
+		response.setNcGetConsoleOutputResponse(getConsoleOutputResponse);
+		
+		return response;
 	}
 }

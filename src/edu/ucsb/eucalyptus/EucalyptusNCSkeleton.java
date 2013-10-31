@@ -73,9 +73,7 @@ public class EucalyptusNCSkeleton {
 
 	public edu.ucsb.eucalyptus.NcGetConsoleOutputResponse ncGetConsoleOutput(
 			edu.ucsb.eucalyptus.NcGetConsoleOutput ncGetConsoleOutput) {
-		// TODO : fill this with the necessary business logic
-		throw new java.lang.UnsupportedOperationException("Please implement "
-				+ this.getClass().getName() + "#ncGetConsoleOutput");
+		return NodeFacade.getInstance().getConsoleOutput(ncGetConsoleOutput);
 	}
 
 	/**
