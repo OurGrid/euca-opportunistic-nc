@@ -1,7 +1,9 @@
 package org.ourgrid.node.util;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.security.Key;
 import java.security.KeyStore;
@@ -12,6 +14,8 @@ import java.security.cert.CertificateException;
 import java.util.Properties;
 
 import javax.crypto.Cipher;
+
+import org.bouncycastle.openssl.PEMWriter;
 
 public class AuthUtils {
 
@@ -61,4 +65,29 @@ public class AuthUtils {
 
 		return CodecUtils.encodeBase64(utf8);
 	}
+	
+	public static File getCertPEMFile(String alias, Properties properties) throws Exception {
+		KeyStore keyStore = getKeyStore(properties);
+		String temp = System.getProperty("java.io.tmpdir");
+		File pemFile = new File(new File(temp), "certificate-" + alias + ".pem");
+		PEMWriter writer = new PEMWriter(new FileWriter(pemFile));
+		writer.writeObject(keyStore.getCertificate(alias));
+		writer.close();
+		return pemFile;
+	}
+
+	public static File getPrivateKeyPEMFile(String alias, String password, 
+			Properties properties) throws Exception {
+		KeyStore keyStore = getKeyStore(properties);
+		String temp = System.getProperty("java.io.tmpdir");
+		File pemFile = new File(new File(temp), "privatekey-" + alias + ".pem");
+		PEMWriter writer = new PEMWriter(new FileWriter(pemFile));
+		Key key = keyStore.getKey(alias, password.toCharArray());
+		writer.writeObject(key);
+		writer.close();
+		return pemFile;
+	}
+	
+	
+	
 }

@@ -35,9 +35,7 @@ public class EucalyptusNCSkeleton {
 
 	public edu.ucsb.eucalyptus.NcDescribeBundleTasksResponse ncDescribeBundleTasks(
 			edu.ucsb.eucalyptus.NcDescribeBundleTasks ncDescribeBundleTasks) {
-		// TODO : fill this with the necessary business logic
-		throw new java.lang.UnsupportedOperationException("Please implement "
-				+ this.getClass().getName() + "#ncDescribeBundleTasks");
+		return NodeFacade.getInstance().describeBundleTasks(ncDescribeBundleTasks);
 	}
 
 	/**
@@ -187,7 +185,6 @@ public class EucalyptusNCSkeleton {
 
 	public edu.ucsb.eucalyptus.NcBundleInstanceResponse ncBundleInstance(
 			edu.ucsb.eucalyptus.NcBundleInstance ncBundleInstance) {
-		// TODO : fill this with the necessary business logic
 		return NodeFacade.getInstance().bundleInstance(ncBundleInstance);
 	}
 

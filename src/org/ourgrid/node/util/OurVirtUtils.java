@@ -51,7 +51,7 @@ public class OurVirtUtils {
 		VirtualMachineType instanceType = instanceRequest.getInstanceType();
 		
 		String tempImage = getCloneLocation(instanceRequest.getInstanceId(), properties);
-		OURVIRT.clone(HYPERVISOR, imagePath, tempImage);
+		clone(imagePath, tempImage);
 		
 		Map<String, Object> conf = new HashMap<String, Object>();
 		conf.put(VirtualMachineConstants.GUEST_USER, 
@@ -59,7 +59,8 @@ public class OurVirtUtils {
 		conf.put(VirtualMachineConstants.GUEST_PASSWORD, 
 				properties.getProperty(NodeProperties.GUEST_PASSWD));
 		conf.put(VirtualMachineConstants.MEMORY, String.valueOf(instanceType.getMemory()));
-		conf.put(VirtualMachineConstants.OS, instanceRequest.getPlatform());
+//		conf.put(VirtualMachineConstants.OS, instanceRequest.getPlatform());
+		conf.put(VirtualMachineConstants.OS, "linux");
 		conf.put(VirtualMachineConstants.NETWORK_TYPE, 
 				properties.getProperty(NodeProperties.NETWORK_TYPE));
 		conf.put(VirtualMachineConstants.OS_VERSION, 
@@ -91,8 +92,13 @@ public class OurVirtUtils {
 		OURVIRT.create(HYPERVISOR, vmName);
 		OURVIRT.start(HYPERVISOR, vmName);
 	}
+
+	public static void clone(String imagePath, String tempImage)
+			throws Exception {
+		OURVIRT.clone(HYPERVISOR, imagePath, tempImage);
+	}
 	
-	private static String getCloneLocation(String instanceId, Properties properties) {
+	public static String getCloneLocation(String instanceId, Properties properties) {
 		String cloneRoot = properties.getProperty(NodeProperties.CLONEROOT);
 		File cloneRootFile = new File(cloneRoot);
 		if (!cloneRootFile.exists()) {
@@ -103,10 +109,6 @@ public class OurVirtUtils {
 
 	public static void terminateInstance(String instanceId, Properties properties) throws Exception {
 		VirtualMachineStatus vmStatus = OURVIRT.status(HYPERVISOR, instanceId);
-		
-		new File(getCloneLocation(instanceId, properties)).delete();
-		
-		//TODO(patricia): The ideal solution is to adopt existing VMs when the NC starts
 		if (vmStatus.equals(VirtualMachineStatus.NOT_REGISTERED)) {
 			OURVIRT.register(instanceId, new HashMap<String, String>());
 		}

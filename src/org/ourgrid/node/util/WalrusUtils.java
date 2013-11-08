@@ -19,15 +19,20 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.log4j.Logger;
 import org.dom4j.Document;
 import org.dom4j.DocumentException;
 import org.dom4j.Node;
@@ -35,6 +40,8 @@ import org.dom4j.io.SAXReader;
 
 public class WalrusUtils {
 
+	private static final Logger LOGGER = Logger.getLogger(WalrusUtils.class);
+	
 	private static final String XML_FORMAT = ".xml";
 	private static final String MANIFEST_XML_FILE_NAME = "manifest";
 	private static final String UPDATED_MANIFEST_XML_FILE_NAME = "updated-";
@@ -45,6 +52,9 @@ public class WalrusUtils {
 	
 	private static final String GET_DECRYPTED_IMG = "GetDecryptedImage";
 	private static final String GET_OBJECT = "GetObject";
+	private static final String NC_CHECK_BUCKET = "./euca-check-bucket";
+	private static final String NC_BUNDLE_UPLOAD = "./euca-bundle-upload";
+	private static final String NC_DELETE_BUNDLE = "./euca-delete-bundle";
 	
 	public static final String IMG_EXT = ".img";
 
@@ -197,5 +207,120 @@ public class WalrusUtils {
 	
 	private static String getImageFolderPath(String machineImageId, Properties properties) {
 		return properties.getProperty(NodeProperties.CACHEROOT) + File.separator + machineImageId;
+	}
+
+	public static void bundleUpload(String instanceId, String bucketName,
+			String imagePath, String walrusURL, String userPublicKey,
+			String s3Policy, String s3PolicySig, Properties properties) throws Exception {
+		
+		String eucaCmdPath = properties.getProperty(NodeProperties.EUCA2OOLS_LOCATION_HOME);
+		ProcessBuilder processBuilder = new ProcessBuilder().directory(new File(eucaCmdPath));
+		
+		processBuilder.command(NC_BUNDLE_UPLOAD, 
+				"-b", bucketName, 
+				"-i", imagePath, 
+				"-U", walrusURL, 
+				"-c", s3Policy, 
+				"--policysignature", s3PolicySig, 
+				"--euca-auth");
+		
+		configureEnv(properties, processBuilder, userPublicKey);
+		
+		LOGGER.info("About to run cmd: " + processBuilder.command());
+		
+		Process process = processBuilder.start();
+		int exitValue = process.waitFor();
+		String cmdOutput = IOUtils.toString(process.getInputStream());
+		LOGGER.info("Bundle cmd output: " + cmdOutput);
+		String cmdStderr = IOUtils.toString(process.getErrorStream());
+		LOGGER.info("Bundle cmd stderr: " + cmdStderr);
+		
+		if (exitValue != 0) {
+			throw new RuntimeException("Bundle upload: Could not upload bundle!");
+		}
+	}
+
+	public static boolean checkBucket(String bucketName, String walrusURL, 
+			String userPublicKey, Properties properties) throws Exception {
+		String eucaCmdPath = properties.getProperty(NodeProperties.EUCA2OOLS_LOCATION_HOME);
+		ProcessBuilder processBuilder = new ProcessBuilder().directory(new File(eucaCmdPath));
+		
+		processBuilder.command(NC_CHECK_BUCKET, 
+				"-U", walrusURL,
+				"-b", bucketName, 
+				"--euca-auth");
+		
+		configureEnv(properties, processBuilder, userPublicKey);
+		
+		LOGGER.info("About to run cmd: " + processBuilder.command());
+		
+		Process process = processBuilder.start();
+		int exitValue = process.waitFor();
+		String cmdOutput = IOUtils.toString(process.getInputStream());
+		LOGGER.info("Check bucket cmd output: " + cmdOutput);
+		String cmdStderr = IOUtils.toString(process.getErrorStream());
+		LOGGER.info("Check bucket cmd stderr: " + cmdStderr);
+		
+		if (exitValue != 0) {
+			return false;
+		}
+		
+		return true;
+	}
+	
+	public static void deleteBundle(String bucketName, String filePrefix, String walrusURL, 
+			String userPublicKey, Properties properties, 
+			boolean bundleBucketExists) throws Exception {
+		String eucaCmdPath = properties.getProperty(NodeProperties.EUCA2OOLS_LOCATION_HOME);
+		ProcessBuilder processBuilder = new ProcessBuilder().directory(new File(eucaCmdPath));
+		
+		String[] deleteArgs = new String[] {
+				NC_DELETE_BUNDLE, 
+				"-U", walrusURL,
+				"-b", bucketName,
+				"-p", filePrefix,
+				"--euca-auth"
+		};
+		List<String> deleteArgsList = Arrays.asList(deleteArgs);
+		if (!bundleBucketExists) {
+			deleteArgsList.add("--clear");
+		}
+		
+		processBuilder.command(deleteArgsList);
+		
+		configureEnv(properties, processBuilder, userPublicKey);
+		
+		LOGGER.info("About to run cmd: " + processBuilder.command());
+		
+		Process process = processBuilder.start();
+		int exitValue = process.waitFor();
+		String cmdOutput = IOUtils.toString(process.getInputStream());
+		LOGGER.info("Delete bundle cmd output: " + cmdOutput);
+		String cmdStderr = IOUtils.toString(process.getErrorStream());
+		LOGGER.info("Delete bundle cmd stderr: " + cmdStderr);
+		
+		if (exitValue != 0) {
+			throw new RuntimeException("Delete bundle: Could not delete bundle!");
+		}
+	}
+
+	private static void configureEnv(Properties properties,
+			ProcessBuilder processBuilder, String userPublicKey) throws Exception {
+		File nodeCertPEM = AuthUtils.getCertPEMFile(properties.getProperty(
+				NodeProperties.PRIVATEKEY_ALIAS), properties);
+		File nodePrivateKeyPEM = AuthUtils.getPrivateKeyPEMFile(
+				properties.getProperty(NodeProperties.PRIVATEKEY_ALIAS), 
+				properties.getProperty(NodeProperties.PRIVATEKEY_PASS), properties);
+		File cloudCertPEM = AuthUtils.getCertPEMFile(properties.getProperty(
+				NodeProperties.CLOUDKEY_ALIAS), properties);
+		
+		Map<String, String> env = processBuilder.environment();
+		env.put("EC2_CERT", nodeCertPEM.getAbsolutePath());
+		env.put("EUCA_CERT", nodeCertPEM.getAbsolutePath());
+		env.put("EUCALYPTUS_CERT", cloudCertPEM.getAbsolutePath());
+		env.put("EUCA_PRIVATE_KEY", nodePrivateKeyPEM.getAbsolutePath());
+		env.put("EC2_USER_ID", "123456789012");
+		env.put("EC2_ACCESS_KEY", userPublicKey);
+		env.put("EC2_SECRET_KEY", "IGNORED");
 	}
 }

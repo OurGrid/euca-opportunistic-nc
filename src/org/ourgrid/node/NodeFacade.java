@@ -1,8 +1,12 @@
 package org.ourgrid.node;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Calendar;
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -18,6 +22,8 @@ import org.ourgrid.node.idleness.LinuxDevInputIdlenessDetector;
 import org.ourgrid.node.model.InstanceRepository;
 import org.ourgrid.node.model.Resources;
 import org.ourgrid.node.model.VBR;
+import org.ourgrid.node.model.bundle.BundleTask;
+import org.ourgrid.node.model.bundle.BundleTaskState;
 import org.ourgrid.node.model.sensor.SensorCache;
 import org.ourgrid.node.model.sensor.SensorResource;
 import org.ourgrid.node.model.volume.VolumeData;
@@ -30,7 +36,9 @@ import org.ourgrid.node.util.ResourcesInfoGatherer;
 import org.ourgrid.node.util.Sensor;
 import org.ourgrid.node.util.VBRUtils;
 import org.ourgrid.node.util.VolumeUtils;
+import org.ourgrid.node.util.WalrusUtils;
 
+import edu.ucsb.eucalyptus.BundleTaskType;
 import edu.ucsb.eucalyptus.InstanceType;
 import edu.ucsb.eucalyptus.NcAssignAddress;
 import edu.ucsb.eucalyptus.NcAssignAddressResponse;
@@ -44,6 +52,10 @@ import edu.ucsb.eucalyptus.NcBundleInstance;
 import edu.ucsb.eucalyptus.NcBundleInstanceResponse;
 import edu.ucsb.eucalyptus.NcBundleInstanceResponseType;
 import edu.ucsb.eucalyptus.NcBundleInstanceType;
+import edu.ucsb.eucalyptus.NcDescribeBundleTasks;
+import edu.ucsb.eucalyptus.NcDescribeBundleTasksResponse;
+import edu.ucsb.eucalyptus.NcDescribeBundleTasksResponseType;
+import edu.ucsb.eucalyptus.NcDescribeBundleTasksType;
 import edu.ucsb.eucalyptus.NcDescribeInstances;
 import edu.ucsb.eucalyptus.NcDescribeInstancesResponse;
 import edu.ucsb.eucalyptus.NcDescribeInstancesResponseType;
@@ -102,6 +114,7 @@ public class NodeFacade implements IdlenessListener {
 	private Executor threadPool = Executors.newFixedThreadPool(20);
 	private ScheduledExecutorService sensorExecutor = Executors.newScheduledThreadPool(1);
 	private Sensor sensor;
+	private Map<String, BundleTask> bundleTasks = new HashMap<String, BundleTask>();
 
 	public NodeFacade(Properties properties, 
 			IdlenessChecker iChecker,
@@ -250,14 +263,20 @@ public class NodeFacade implements IdlenessListener {
 			terminateInstance(instance.getInstanceId());
 		}
 	}
-
+	
 	private void terminateInstance(String instanceId) {
+		terminateInstance(instanceId, true);
+	}
+
+	private void terminateInstance(String instanceId, boolean changeToTeardown) {
 		try {
 			OurVirtUtils.terminateInstance(instanceId, properties);
 			//			instanceRepository.removeInstance(instanceId);
 			disconnectVolumes(instanceId);
 			InstanceType instance = instanceRepository.getInstance(instanceId);
-			instance.setStateName(InstanceRepository.TEARDOWN_STATE);
+			if (changeToTeardown) {
+				instance.setStateName(InstanceRepository.TEARDOWN_STATE);
+			}
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
@@ -265,7 +284,11 @@ public class NodeFacade implements IdlenessListener {
 
 	private void disconnectVolumes(String instanceId) {
 		InstanceType instance = instanceRepository.getInstance(instanceId);
-		for (VolumeType volume : instance.getVolumes()) {
+		VolumeType[] volumes = instance.getVolumes();
+		if (volumes == null) {
+			return;
+		}
+		for (VolumeType volume : volumes) {
 			try {
 				String remoteDev = volume.getRemoteDev();
 				ISCSIUtils.logout(VolumeData.parse(remoteDev).getStore(), properties);
@@ -517,23 +540,101 @@ public class NodeFacade implements IdlenessListener {
 
 	public NcBundleInstanceResponse bundleInstance(
 			NcBundleInstance ncBundleInstance) {
+		
 		checkNodeControllerAvailable();
+		
+		NcBundleInstanceType bundleRequest = ncBundleInstance.getNcBundleInstance();
+		final String instanceId = bundleRequest.getInstanceId();
+		final String bucketName = bundleRequest.getBucketName();
+		final String filePrefix = bundleRequest.getFilePrefix();
+		final String walrusURL = bundleRequest.getWalrusURL();
+		final String userPublicKey = bundleRequest.getUserPublicKey();
+		final String s3Policy = bundleRequest.getS3Policy();
+		final String s3PolicySig = bundleRequest.getS3PolicySig();	
+		
+		LOGGER.info("Bundling Instance [" + instanceId + "].");
+		
+		terminateInstance(instanceId, false);
+		final BundleTask bt = new BundleTask();
+		bt.setInstanceId(instanceId);
+		bt.setState(BundleTaskState.NONE);
+		bt.setManifest(bucketName + "/" + filePrefix + ".manifest.xml");
+		
+		bundleTasks.put(instanceId, bt);
+		setBundlingState(instanceId, bt, BundleTaskState.NONE);
+		
+		startBundleThread(instanceId, bucketName, filePrefix, walrusURL,
+				userPublicKey, s3Policy, s3PolicySig, bt);
 
 		NcBundleInstanceResponse bundleInstanceResponse = new NcBundleInstanceResponse();
 		NcBundleInstanceResponseType bundleInstance = new NcBundleInstanceResponseType();
-		NcBundleInstanceType bundleRequest = ncBundleInstance.getNcBundleInstance();
-		
-		LOGGER.info("Bundling Instance [" + bundleRequest.getInstanceId() + "].");
-		
-		
-		
 		bundleInstance.setUserId(bundleRequest.getUserId());
-		//TODO
+		bundleInstance.setCorrelationId(bundleRequest.getCorrelationId());
 		bundleInstance.set_return(true);
-		
 		bundleInstanceResponse.setNcBundleInstanceResponse(bundleInstance);
 		
 		return bundleInstanceResponse;
+	}
+
+	private void startBundleThread(final String instanceId,
+			final String bucketName, final String filePrefix,
+			final String walrusURL, final String userPublicKey,
+			final String s3Policy, final String s3PolicySig, final BundleTask bt) {
+		
+		new Thread(new Runnable() {
+			@Override
+			public void run() {
+				boolean bucketExists = false;
+				try {
+					setBundlingState(instanceId, bt, BundleTaskState.BUNDLING);
+					bucketExists = WalrusUtils.checkBucket(bucketName, walrusURL, 
+							userPublicKey, properties);
+					doBundle(instanceId, bucketName, filePrefix, walrusURL, 
+							userPublicKey, s3Policy, s3PolicySig);
+					setBundlingState(instanceId, bt, BundleTaskState.SUCCEEDED);
+				} catch (Exception e) {
+					bt.setState(BundleTaskState.FAILED);
+					setBundlingState(instanceId, bt, BundleTaskState.FAILED);
+					LOGGER.error("Error while trying to bundle instance [" 
+							+ instanceId + "].", e);
+					try {
+						WalrusUtils.deleteBundle(bucketName, filePrefix, walrusURL, 
+								userPublicKey, properties, bucketExists);
+					} catch (Exception e1) {
+						// Best effort
+					}
+				} finally {
+					moveToTeardown(instanceId);
+				}
+			}
+		}).start();
+	}
+	
+	private void moveToTeardown(String instanceId) {
+		try {
+			Thread.sleep(30000);
+		} catch (InterruptedException e) {}
+		
+		InstanceType instance = instanceRepository.getInstance(instanceId);
+		instance.setStateName(InstanceRepository.TEARDOWN_STATE);
+	}
+
+	private void setBundlingState(String instanceId, BundleTask bt, BundleTaskState bundleTaskState) {
+		final InstanceType instance = instanceRepository.getInstance(instanceId);
+		instance.setBundleTaskStateName(bundleTaskState.getName());
+		bt.setState(bundleTaskState);
+	}
+
+	private void doBundle(String instanceId, String bucketName,
+			String filePrefix, String walrusURL, String userPublicKey,
+			String s3Policy, String s3PolicySig) throws Exception {
+		
+		String cloneLocation = OurVirtUtils.getCloneLocation(instanceId, properties);
+		File imageFile = new File(cloneLocation);
+		File cloneFile = new File(imageFile.getParentFile(), filePrefix);
+		OurVirtUtils.clone(imageFile.getAbsolutePath(), cloneFile.getAbsolutePath());
+		WalrusUtils.bundleUpload(instanceId, bucketName, cloneFile.getAbsolutePath(), 
+				walrusURL, userPublicKey, s3Policy, s3PolicySig, properties);
 	}
 
 	public NcPowerDownResponse powerDown(NcPowerDown ncPowerDown) {
@@ -701,9 +802,15 @@ public class NodeFacade implements IdlenessListener {
 	public NcGetConsoleOutputResponse getConsoleOutput(
 			NcGetConsoleOutput ncGetConsoleOutput) {
 		
+		checkNodeControllerAvailable();
+		
 		NcGetConsoleOutputType getConsoleOutputResquest = 
 				ncGetConsoleOutput.getNcGetConsoleOutput();
 		String instanceId = getConsoleOutputResquest.getInstanceId();
+		
+		LOGGER.info("Getting console output from instance [" + 
+				instanceId  + "].");
+		
 		String encodedConsoleOutput = null;
 		try {
 			String consoleOutput = OurVirtUtils.getConsoleOutput(instanceId);
@@ -721,6 +828,37 @@ public class NodeFacade implements IdlenessListener {
 		getConsoleOutputResponse.setUserId(getConsoleOutputResquest.getUserId());
 		getConsoleOutputResponse.setConsoleOutput(encodedConsoleOutput);
 		response.setNcGetConsoleOutputResponse(getConsoleOutputResponse);
+		
+		return response;
+	}
+
+	public NcDescribeBundleTasksResponse describeBundleTasks(
+			NcDescribeBundleTasks ncDescribeBundleTasks) {
+		
+		checkNodeControllerAvailable();
+		
+		LOGGER.info("Describing bundle tasks.");
+		
+		NcDescribeBundleTasksType request = ncDescribeBundleTasks.getNcDescribeBundleTasks();
+		
+		List<BundleTaskType> bundleTasksResponse = new LinkedList<BundleTaskType>();
+		for (BundleTask bundleTask : bundleTasks.values()) {
+			BundleTaskType btt = new BundleTaskType();
+			btt.setInstanceId(bundleTask.getInstanceId());
+			btt.setState(bundleTask.getState().getName());
+			btt.setManifest(bundleTask.getManifest());
+			bundleTasksResponse.add(btt);
+		}
+		
+		NcDescribeBundleTasksResponse response = new NcDescribeBundleTasksResponse();
+		NcDescribeBundleTasksResponseType describeBundleTasksResponse = 
+				new NcDescribeBundleTasksResponseType();
+		describeBundleTasksResponse.set_return(true);
+		describeBundleTasksResponse.setCorrelationId(request.getCorrelationId());
+		describeBundleTasksResponse.setUserId(request.getUserId());
+		describeBundleTasksResponse.setBundleTasks(
+				bundleTasksResponse.toArray(new BundleTaskType[]{}));
+		response.setNcDescribeBundleTasksResponse(describeBundleTasksResponse);
 		
 		return response;
 	}

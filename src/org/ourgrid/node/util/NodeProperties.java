@@ -17,6 +17,7 @@ public class NodeProperties {
 	public static final String IDLENESS_FILE = "idleness.file";
 	public static final String IDLENESS_TIME = "idleness.time";
 	public static final String IDLENESS_ENABLED = "idleness.enabled";
+	public static final String EUCA2OOLS_LOCATION_HOME = "euca2ools.home";
 	public static final String HYPERVISOR_LOCATION_NAME = "hypervisor.location.name";
 	public static final String HYPERVISOR_LOCATION_VALUE = "hypervisor.location.value";
 	public static final String GUEST_USER = "guest.user";
