@@ -52,6 +52,10 @@ import edu.ucsb.eucalyptus.NcBundleInstance;
 import edu.ucsb.eucalyptus.NcBundleInstanceResponse;
 import edu.ucsb.eucalyptus.NcBundleInstanceResponseType;
 import edu.ucsb.eucalyptus.NcBundleInstanceType;
+import edu.ucsb.eucalyptus.NcCancelBundleTask;
+import edu.ucsb.eucalyptus.NcCancelBundleTaskResponse;
+import edu.ucsb.eucalyptus.NcCancelBundleTaskResponseType;
+import edu.ucsb.eucalyptus.NcCancelBundleTaskType;
 import edu.ucsb.eucalyptus.NcDescribeBundleTasks;
 import edu.ucsb.eucalyptus.NcDescribeBundleTasksResponse;
 import edu.ucsb.eucalyptus.NcDescribeBundleTasksResponseType;
@@ -544,13 +548,7 @@ public class NodeFacade implements IdlenessListener {
 		checkNodeControllerAvailable();
 		
 		NcBundleInstanceType bundleRequest = ncBundleInstance.getNcBundleInstance();
-		final String instanceId = bundleRequest.getInstanceId();
-		final String bucketName = bundleRequest.getBucketName();
-		final String filePrefix = bundleRequest.getFilePrefix();
-		final String walrusURL = bundleRequest.getWalrusURL();
-		final String userPublicKey = bundleRequest.getUserPublicKey();
-		final String s3Policy = bundleRequest.getS3Policy();
-		final String s3PolicySig = bundleRequest.getS3PolicySig();	
+		String instanceId = bundleRequest.getInstanceId();
 		
 		LOGGER.info("Bundling Instance [" + instanceId + "].");
 		
@@ -558,13 +556,18 @@ public class NodeFacade implements IdlenessListener {
 		final BundleTask bt = new BundleTask();
 		bt.setInstanceId(instanceId);
 		bt.setState(BundleTaskState.NONE);
-		bt.setManifest(bucketName + "/" + filePrefix + ".manifest.xml");
+		bt.setBucketName(bundleRequest.getBucketName());
+		bt.setFilePrefix(bundleRequest.getFilePrefix());
+		bt.setManifest(bt.getBucketName() + "/" + bt.getFilePrefix() + ".manifest.xml");
+		bt.setWalrusURL(bundleRequest.getWalrusURL());
+		bt.setUserPublicKey(bundleRequest.getUserPublicKey());
+		bt.setS3Policy(bundleRequest.getS3Policy());
+		bt.setS3PolicySig(bundleRequest.getS3PolicySig());
 		
 		bundleTasks.put(instanceId, bt);
-		setBundlingState(instanceId, bt, BundleTaskState.NONE);
+		setBundlingState(bt, BundleTaskState.NONE);
 		
-		startBundleThread(instanceId, bucketName, filePrefix, walrusURL,
-				userPublicKey, s3Policy, s3PolicySig, bt);
+		startBundleThread(bt);
 
 		NcBundleInstanceResponse bundleInstanceResponse = new NcBundleInstanceResponse();
 		NcBundleInstanceResponseType bundleInstance = new NcBundleInstanceResponseType();
@@ -576,65 +579,60 @@ public class NodeFacade implements IdlenessListener {
 		return bundleInstanceResponse;
 	}
 
-	private void startBundleThread(final String instanceId,
-			final String bucketName, final String filePrefix,
-			final String walrusURL, final String userPublicKey,
-			final String s3Policy, final String s3PolicySig, final BundleTask bt) {
+	private void startBundleThread(final BundleTask bt) {
 		
 		new Thread(new Runnable() {
 			@Override
 			public void run() {
-				boolean bucketExists = false;
 				try {
-					setBundlingState(instanceId, bt, BundleTaskState.BUNDLING);
-					bucketExists = WalrusUtils.checkBucket(bucketName, walrusURL, 
-							userPublicKey, properties);
-					doBundle(instanceId, bucketName, filePrefix, walrusURL, 
-							userPublicKey, s3Policy, s3PolicySig);
-					setBundlingState(instanceId, bt, BundleTaskState.SUCCEEDED);
+					setBundlingState(bt, BundleTaskState.BUNDLING);
+					bt.setBundleBucketExists(WalrusUtils.checkBucket(bt, properties));
+					
+					if (bt.getState().equals(BundleTaskState.BUNDLING)) {
+						doBundle(bt);
+						setBundlingState(bt, BundleTaskState.SUCCEEDED);
+					}
 				} catch (Exception e) {
-					bt.setState(BundleTaskState.FAILED);
-					setBundlingState(instanceId, bt, BundleTaskState.FAILED);
-					LOGGER.error("Error while trying to bundle instance [" 
-							+ instanceId + "].", e);
-					try {
-						WalrusUtils.deleteBundle(bucketName, filePrefix, walrusURL, 
-								userPublicKey, properties, bucketExists);
-					} catch (Exception e1) {
-						// Best effort
+					if (bt.getState().equals(BundleTaskState.BUNDLING)) {
+						setBundlingState(bt, BundleTaskState.FAILED);
+						LOGGER.error("Error while trying to bundle instance [" 
+								+ bt.getInstanceId() + "].", e);
+						try {
+							WalrusUtils.deleteBundle(bt, properties);
+						} catch (Exception e1) {
+							// Best effort
+						}
 					}
 				} finally {
-					moveToTeardown(instanceId);
+					moveToTeardown(bt.getInstanceId());
 				}
 			}
 		}).start();
 	}
 	
 	private void moveToTeardown(String instanceId) {
-		try {
-			Thread.sleep(30000);
-		} catch (InterruptedException e) {}
-		
 		InstanceType instance = instanceRepository.getInstance(instanceId);
 		instance.setStateName(InstanceRepository.TEARDOWN_STATE);
 	}
 
-	private void setBundlingState(String instanceId, BundleTask bt, BundleTaskState bundleTaskState) {
-		final InstanceType instance = instanceRepository.getInstance(instanceId);
+	private void setBundlingState(BundleTask bt, BundleTaskState bundleTaskState) {
+		if (bt.getState().equals(BundleTaskState.CANCELLED) || 
+				bt.getState().equals(BundleTaskState.FAILED) || 
+				bt.getState().equals(BundleTaskState.SUCCEEDED)) {
+			return;
+		}
+		final InstanceType instance = instanceRepository.getInstance(bt.getInstanceId());
 		instance.setBundleTaskStateName(bundleTaskState.getName());
 		bt.setState(bundleTaskState);
 	}
 
-	private void doBundle(String instanceId, String bucketName,
-			String filePrefix, String walrusURL, String userPublicKey,
-			String s3Policy, String s3PolicySig) throws Exception {
+	private void doBundle(BundleTask bt) throws Exception {
 		
-		String cloneLocation = OurVirtUtils.getCloneLocation(instanceId, properties);
+		String cloneLocation = OurVirtUtils.getCloneLocation(bt.getInstanceId(), properties);
 		File imageFile = new File(cloneLocation);
-		File cloneFile = new File(imageFile.getParentFile(), filePrefix);
+		File cloneFile = new File(imageFile.getParentFile(), bt.getFilePrefix());
 		OurVirtUtils.clone(imageFile.getAbsolutePath(), cloneFile.getAbsolutePath());
-		WalrusUtils.bundleUpload(instanceId, bucketName, cloneFile.getAbsolutePath(), 
-				walrusURL, userPublicKey, s3Policy, s3PolicySig, properties);
+		WalrusUtils.bundleUpload(bt, cloneFile.getAbsolutePath(), properties);
 	}
 
 	public NcPowerDownResponse powerDown(NcPowerDown ncPowerDown) {
@@ -861,5 +859,46 @@ public class NodeFacade implements IdlenessListener {
 		response.setNcDescribeBundleTasksResponse(describeBundleTasksResponse);
 		
 		return response;
+	}
+
+	public NcCancelBundleTaskResponse cancelBundleTask(
+			NcCancelBundleTask ncCancelBundleTask) {
+		
+		checkNodeControllerAvailable();
+		
+		NcCancelBundleTaskType request = ncCancelBundleTask.getNcCancelBundleTask();
+		String instanceId = request.getInstanceId();
+		
+		LOGGER.info("Cancelling bundle task for instance [" + instanceId + "].");
+		
+		final BundleTask bt = bundleTasks.get(instanceId);
+		setBundlingState(bt, BundleTaskState.CANCELLED);
+		Process process = bt.getCurrentProcess();
+		if (process != null) {
+			process.destroy();
+			bt.setCurrentProcess(null);
+		}
+		
+		new Thread(new Runnable() {
+			@Override
+			public void run() {
+				try {
+					WalrusUtils.deleteBundle(bt, properties);
+				} catch (Exception e1) {
+					LOGGER.error(e1.getMessage(), e1);
+					// Best effort
+				}
+			}
+		}).start();
+
+		
+		NcCancelBundleTaskResponseType response = new NcCancelBundleTaskResponseType();
+		response.set_return(true);
+		response.setCorrelationId(request.getCorrelationId());
+		response.setUserId(request.getUserId());
+		NcCancelBundleTaskResponse cancelBundleTaskResponse = new NcCancelBundleTaskResponse();
+		cancelBundleTaskResponse.setNcCancelBundleTaskResponse(response);
+		
+		return cancelBundleTaskResponse;
 	}
 }

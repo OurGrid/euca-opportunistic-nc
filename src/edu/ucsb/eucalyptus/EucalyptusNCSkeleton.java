@@ -157,9 +157,7 @@ public class EucalyptusNCSkeleton {
 
 	public edu.ucsb.eucalyptus.NcCancelBundleTaskResponse ncCancelBundleTask(
 			edu.ucsb.eucalyptus.NcCancelBundleTask ncCancelBundleTask) {
-		// TODO : fill this with the necessary business logic
-		throw new java.lang.UnsupportedOperationException("Please implement "
-				+ this.getClass().getName() + "#ncCancelBundleTask");
+		return NodeFacade.getInstance().cancelBundleTask(ncCancelBundleTask);
 	}
 
 	/**

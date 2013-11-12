@@ -19,6 +19,7 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -37,6 +38,7 @@ import org.dom4j.Document;
 import org.dom4j.DocumentException;
 import org.dom4j.Node;
 import org.dom4j.io.SAXReader;
+import org.ourgrid.node.model.bundle.BundleTask;
 
 public class WalrusUtils {
 
@@ -209,26 +211,26 @@ public class WalrusUtils {
 		return properties.getProperty(NodeProperties.CACHEROOT) + File.separator + machineImageId;
 	}
 
-	public static void bundleUpload(String instanceId, String bucketName,
-			String imagePath, String walrusURL, String userPublicKey,
-			String s3Policy, String s3PolicySig, Properties properties) throws Exception {
+	public static void bundleUpload(BundleTask bt, String imagePath, Properties properties) 
+					throws Exception {
 		
 		String eucaCmdPath = properties.getProperty(NodeProperties.EUCA2OOLS_LOCATION_HOME);
 		ProcessBuilder processBuilder = new ProcessBuilder().directory(new File(eucaCmdPath));
 		
 		processBuilder.command(NC_BUNDLE_UPLOAD, 
-				"-b", bucketName, 
+				"-b", bt.getBucketName(), 
 				"-i", imagePath, 
-				"-U", walrusURL, 
-				"-c", s3Policy, 
-				"--policysignature", s3PolicySig, 
+				"-U", bt.getWalrusURL(), 
+				"-c", bt.getS3Policy(), 
+				"--policysignature", bt.getS3PolicySig(), 
 				"--euca-auth");
 		
-		configureEnv(properties, processBuilder, userPublicKey);
+		configureEnv(properties, processBuilder, bt.getUserPublicKey());
 		
 		LOGGER.info("About to run cmd: " + processBuilder.command());
 		
 		Process process = processBuilder.start();
+		bt.setCurrentProcess(process);
 		int exitValue = process.waitFor();
 		String cmdOutput = IOUtils.toString(process.getInputStream());
 		LOGGER.info("Bundle cmd output: " + cmdOutput);
@@ -240,21 +242,21 @@ public class WalrusUtils {
 		}
 	}
 
-	public static boolean checkBucket(String bucketName, String walrusURL, 
-			String userPublicKey, Properties properties) throws Exception {
+	public static boolean checkBucket(BundleTask bt, Properties properties) throws Exception {
 		String eucaCmdPath = properties.getProperty(NodeProperties.EUCA2OOLS_LOCATION_HOME);
 		ProcessBuilder processBuilder = new ProcessBuilder().directory(new File(eucaCmdPath));
 		
 		processBuilder.command(NC_CHECK_BUCKET, 
-				"-U", walrusURL,
-				"-b", bucketName, 
+				"-U", bt.getWalrusURL(),
+				"-b", bt.getBucketName(), 
 				"--euca-auth");
 		
-		configureEnv(properties, processBuilder, userPublicKey);
+		configureEnv(properties, processBuilder, bt.getUserPublicKey());
 		
 		LOGGER.info("About to run cmd: " + processBuilder.command());
 		
 		Process process = processBuilder.start();
+		bt.setCurrentProcess(process);
 		int exitValue = process.waitFor();
 		String cmdOutput = IOUtils.toString(process.getInputStream());
 		LOGGER.info("Check bucket cmd output: " + cmdOutput);
@@ -268,31 +270,30 @@ public class WalrusUtils {
 		return true;
 	}
 	
-	public static void deleteBundle(String bucketName, String filePrefix, String walrusURL, 
-			String userPublicKey, Properties properties, 
-			boolean bundleBucketExists) throws Exception {
+	public static void deleteBundle(BundleTask bt, Properties properties) throws Exception {
 		String eucaCmdPath = properties.getProperty(NodeProperties.EUCA2OOLS_LOCATION_HOME);
 		ProcessBuilder processBuilder = new ProcessBuilder().directory(new File(eucaCmdPath));
 		
 		String[] deleteArgs = new String[] {
 				NC_DELETE_BUNDLE, 
-				"-U", walrusURL,
-				"-b", bucketName,
-				"-p", filePrefix,
+				"-U", bt.getWalrusURL(),
+				"-b", bt.getBucketName(),
+				"-p", bt.getFilePrefix(),
 				"--euca-auth"
 		};
-		List<String> deleteArgsList = Arrays.asList(deleteArgs);
-		if (!bundleBucketExists) {
+		List<String> deleteArgsList = new ArrayList<>(Arrays.asList(deleteArgs));
+		
+		if (!bt.isBundleBucketExists()) {
 			deleteArgsList.add("--clear");
 		}
 		
 		processBuilder.command(deleteArgsList);
 		
-		configureEnv(properties, processBuilder, userPublicKey);
+		configureEnv(properties, processBuilder, bt.getUserPublicKey());
 		
 		LOGGER.info("About to run cmd: " + processBuilder.command());
-		
 		Process process = processBuilder.start();
+		bt.setCurrentProcess(process);
 		int exitValue = process.waitFor();
 		String cmdOutput = IOUtils.toString(process.getInputStream());
 		LOGGER.info("Delete bundle cmd output: " + cmdOutput);
