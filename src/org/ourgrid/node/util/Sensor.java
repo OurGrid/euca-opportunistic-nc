@@ -14,10 +14,10 @@ import org.ourgrid.node.model.sensor.MetricCounter;
 import org.ourgrid.node.model.sensor.MetricDimension;
 import org.ourgrid.node.model.sensor.MetricDimension.DimensionName;
 import org.ourgrid.node.model.sensor.MetricValue;
+import org.ourgrid.node.model.sensor.SensorCache;
 import org.ourgrid.node.model.sensor.SensorMetric;
 import org.ourgrid.node.model.sensor.SensorMetric.MetricName;
 import org.ourgrid.node.model.sensor.SensorResource;
-import org.ourgrid.node.model.sensor.SensorCache;
 import org.ourgrid.virt.model.CPUStats;
 import org.ourgrid.virt.model.DiskStats;
 import org.ourgrid.virt.model.NetworkStats;
@@ -68,12 +68,15 @@ public class Sensor implements Runnable {
 	private void addSensorValue(InstanceStat iStat) {
 		SensorResource sensorResource = getSensorResource(iStat.getInstanceId());
 		String metricName = iStat.getMetricName();
-		for (MetricsResourceType metric : sensorResource.getMetrics()) {
-			if (!metric.getMetricName().equals(metricName)) {
-				continue;
+		MetricsResourceType[] metrics = sensorResource.getMetrics();
+		if (metrics != null) {
+			for (MetricsResourceType metric : metrics) {
+				if (!metric.getMetricName().equals(metricName)) {
+					continue;
+				}
+				addToMetric(iStat, metric);
+				return;
 			}
-			addToMetric(iStat, metric);
-			return;
 		}
 		SensorMetric metric = new SensorMetric(metricName, new MetricCounterType[]{});
 		sensorResource.addMetrics(metric);
@@ -81,13 +84,16 @@ public class Sensor implements Runnable {
 	}
 
 	private void addToMetric(InstanceStat iStat, MetricsResourceType metric) {
-		for (MetricCounterType counter : metric.getCounters()) {
-			if (!counter.getType().equals(
-					iStat.getCounterType().getName())) {
-				continue;
+		MetricCounterType[] counters = metric.getCounters();
+		if (counters != null) {
+			for (MetricCounterType counter : counters) {
+				if (!counter.getType().equals(
+						iStat.getCounterType().getName())) {
+					continue;
+				}
+				addToCounter(iStat, counter);
+				return;
 			}
-			addToCounter(iStat, counter);
-			return;
 		}
 		MetricCounter metricCounter = new MetricCounter(pollingInterval, 
 				new MetricDimensionsType[]{}, 0L, iStat.getCounterType().getName());
@@ -96,13 +102,16 @@ public class Sensor implements Runnable {
 	}
 
 	private void addToCounter(InstanceStat iStat, MetricCounterType counter) {
-		for (MetricDimensionsType dimension : counter.getDimensions()) {
-			if (!dimension.getDimensionName().equals(
-					iStat.getDimensionName())) {
-				continue;
+		MetricDimensionsType[] dimensions = counter.getDimensions();
+		if (dimensions != null) {
+			for (MetricDimensionsType dimension : dimensions) {
+				if (!dimension.getDimensionName().equals(
+						iStat.getDimensionName())) {
+					continue;
+				}
+				addToDimension(iStat, dimension);
+				return;
 			}
-			addToDimension(iStat, dimension);
-			return;
 		}
 		MetricDimension metricDimension = new MetricDimension(iStat.getDimensionName(), 
 				new MetricDimensionsValuesType[]{});
@@ -145,101 +154,163 @@ public class Sensor implements Runnable {
 		return instancesStats;
 	}
 
-	private List<InstanceStat> buildInstanceStatObj(String instanceId) throws Exception {
+	private List<InstanceStat> buildInstanceStatObj(String instanceId) {
 		
 		List<InstanceStat> iStats = new ArrayList<InstanceStat>();
 		
-		CPUStats cStats = OurVirtUtils.getCPUStats(instanceId);
-		InstanceStat cpuUtilization = new InstanceStat(instanceId);
+		CPUStats cStats = null;
+		try {
+			cStats = OurVirtUtils.getCPUStats(instanceId);
+		} catch (Exception e) {
+			LOGGER.warn("Could not get CPU stats.", e);
+		}
+		InstanceStat cpuUtilization = getCPUInstanceStat(instanceId, cStats);
+		if (cpuUtilization != null) {
+			iStats.add(cpuUtilization);
+		}
 		
-		cpuUtilization.setTimestamp(cStats.getTimestamp());
-		cpuUtilization.setMetricName(MetricName.CPUUtilization.getMetricNameStr());
-		cpuUtilization.setCounterType(CounterType.SENSOR_SUMMATION);
-		cpuUtilization.setDimensionName(DimensionName.DEFAULT.getDimensionNameStr());
-		cpuUtilization.setValue(cStats.getCpuTime());
+		NetworkStats netStats = null;
+		try {
+			netStats = OurVirtUtils.getNetworkStats(instanceId);
+		} catch (Exception e) {
+			LOGGER.warn("Could not get network stats.", e);
+		}
+		InstanceStat netIn = getNetworkInInstanceStat(instanceId, netStats);
+		if (netIn != null) {
+			iStats.add(netIn);
+		}
+		InstanceStat netOut = getNetworkOutInstanceStat(instanceId, netStats);
+		if (netOut != null) {
+			iStats.add(netOut);
+		}
 		
-		iStats.add(cpuUtilization);
+		List<DiskStats> disksStats = null;
+		try {
+			disksStats = OurVirtUtils.getDiskStats(instanceId);
+		} catch (Exception e) {
+			LOGGER.warn("Could not get disk stats.", e);
+		}
+		if (disksStats != null) {
+			for (DiskStats diskStat : disksStats) {
+				InstanceStat diskReadOps = getDiskInstanceStat(instanceId, 
+						diskStat, MetricName.DiskReadOps);
+				if (diskReadOps != null) {
+					iStats.add(diskReadOps);
+				}
+				InstanceStat diskWriteOps = getDiskInstanceStat(instanceId, 
+						diskStat, MetricName.DiskWriteOps);
+				if (diskWriteOps != null) {
+					iStats.add(diskWriteOps);
+				}
+				InstanceStat diskReadBytes = getDiskInstanceStat(instanceId, 
+						diskStat, MetricName.DiskReadBytes);
+				if (diskReadBytes != null) {
+					iStats.add(diskReadBytes);
+				}
+				InstanceStat diskWriteBytes = getDiskInstanceStat(instanceId, 
+						diskStat, MetricName.DiskWriteBytes);
+				if (diskWriteOps != null) {
+					iStats.add(diskWriteBytes);
+				}
+				InstanceStat diskTotalReadTime = getDiskInstanceStat(instanceId, 
+						diskStat, MetricName.VolumeTotalReadTime);
+				if (diskTotalReadTime != null) {
+					iStats.add(diskTotalReadTime);
+				}
+				InstanceStat diskTotalWriteTime = getDiskInstanceStat(instanceId, 
+						diskStat, MetricName.VolumeTotalWriteTime);
+				if (diskTotalWriteTime != null) {
+					iStats.add(diskTotalWriteTime);
+				}
+			}
+		}
 		
-		NetworkStats netStats = OurVirtUtils.getNetworkStats(instanceId);
-		InstanceStat netIn = new InstanceStat(instanceId);
-		
-		netIn.setTimestamp(netStats.getTimestamp());
-		netIn.setMetricName(MetricName.NetworkIn.getMetricNameStr());
-		netIn.setCounterType(CounterType.SENSOR_SUMMATION);
-		netIn.setDimensionName(DimensionName.TOTAL.getDimensionNameStr());
-		netIn.setValue(netStats.getReceivedBytes());
-		
-		iStats.add(netIn);
+		return iStats;
+	}
 
-		InstanceStat netOut = new InstanceStat(instanceId);
+	private InstanceStat getDiskInstanceStat(String instanceId,
+			DiskStats diskStat, MetricName metricName) {
+		if (diskStat == null) {
+			return null;
+		}
+		InstanceStat diskInstanceStat = new InstanceStat(instanceId);
+		diskInstanceStat.setTimestamp(diskStat.getTimestamp());
+		diskInstanceStat.setMetricName(metricName.getMetricNameStr());
+		diskInstanceStat.setCounterType(CounterType.SENSOR_SUMMATION);
+		diskInstanceStat.setDimensionName(diskStat.getDeviceName());
+		long value = 0L;
+		switch (metricName) {
+		case DiskReadOps:
+			value = diskStat.getReadOps();
+			break;
+			
+		case DiskWriteOps:
+			value = diskStat.getWriteOps();
+			break;
+			
+		case DiskReadBytes:
+			value = diskStat.getReadBytes();
+			break;
+			
+		case DiskWriteBytes:
+			value = diskStat.getWriteBytes();
+			break;
+			
+		case VolumeTotalReadTime:
+			value = diskStat.getReadTotalTime();
+			break;
+			
+		case VolumeTotalWriteTime:
+			value = diskStat.getWriteTotalTime();
+			break;
+			
+		default:
+			break;
+		}
+		diskInstanceStat.setValue(value);
 		
+		return diskInstanceStat;
+	}
+
+	private InstanceStat getNetworkOutInstanceStat(String instanceId,
+			NetworkStats netStats) {
+		if (netStats == null) {
+			return null;
+		}
+		InstanceStat netOut = new InstanceStat(instanceId);
 		netOut.setTimestamp(netStats.getTimestamp());
 		netOut.setMetricName(MetricName.NetworkOut.getMetricNameStr());
 		netOut.setCounterType(CounterType.SENSOR_SUMMATION);
 		netOut.setDimensionName(DimensionName.TOTAL.getDimensionNameStr());
 		netOut.setValue(netStats.getTransferredBytes());
-		
-		iStats.add(netOut);
-		
-		List<DiskStats> disksStats = OurVirtUtils.getDiskStats(instanceId);
-		
-		for (DiskStats diskStat : disksStats) {
-			InstanceStat diskReadOps = new InstanceStat(instanceId);
-			diskReadOps.setTimestamp(diskStat.getTimestamp());
-			diskReadOps.setMetricName(MetricName.DiskReadOps.getMetricNameStr());
-			diskReadOps.setCounterType(CounterType.SENSOR_SUMMATION);
-			diskReadOps.setDimensionName(diskStat.getDeviceName());
-			diskReadOps.setValue(diskStat.getReadOps());
-			
-			iStats.add(diskReadOps);
-			
-			InstanceStat diskWriteOps = new InstanceStat(instanceId);
-			diskWriteOps.setTimestamp(diskStat.getTimestamp());
-			diskWriteOps.setMetricName(MetricName.DiskWriteOps.getMetricNameStr());
-			diskWriteOps.setCounterType(CounterType.SENSOR_SUMMATION);
-			diskWriteOps.setDimensionName(diskStat.getDeviceName());
-			diskWriteOps.setValue(diskStat.getWriteOps());
-			
-			iStats.add(diskWriteOps);
-			
-			InstanceStat diskReadBytes = new InstanceStat(instanceId);
-			diskReadBytes.setTimestamp(diskStat.getTimestamp());
-			diskReadBytes.setMetricName(MetricName.DiskReadBytes.getMetricNameStr());
-			diskReadBytes.setCounterType(CounterType.SENSOR_SUMMATION);
-			diskReadBytes.setDimensionName(diskStat.getDeviceName());
-			diskReadBytes.setValue(diskStat.getReadBytes());
-			
-			iStats.add(diskReadBytes);
-			
-			InstanceStat diskWriteBytes = new InstanceStat(instanceId);
-			diskWriteBytes.setTimestamp(diskStat.getTimestamp());
-			diskWriteBytes.setMetricName(MetricName.DiskWriteBytes.getMetricNameStr());
-			diskWriteBytes.setCounterType(CounterType.SENSOR_SUMMATION);
-			diskWriteBytes.setDimensionName(diskStat.getDeviceName());
-			diskWriteBytes.setValue(diskStat.getWriteBytes());
-			
-			iStats.add(diskWriteBytes);
-			
-			InstanceStat diskTotalReadTime = new InstanceStat(instanceId);
-			diskTotalReadTime.setTimestamp(diskStat.getTimestamp());
-			diskTotalReadTime.setMetricName(MetricName.VolumeTotalReadTime.getMetricNameStr());
-			diskTotalReadTime.setCounterType(CounterType.SENSOR_SUMMATION);
-			diskTotalReadTime.setDimensionName(diskStat.getDeviceName());
-			diskTotalReadTime.setValue(diskStat.getReadTotalTime());
-			
-			iStats.add(diskTotalReadTime);
-			
-			InstanceStat diskTotalWriteTime = new InstanceStat(instanceId);
-			diskTotalWriteTime.setTimestamp(diskStat.getTimestamp());
-			diskTotalWriteTime.setMetricName(MetricName.VolumeTotalWriteTime.getMetricNameStr());
-			diskTotalWriteTime.setCounterType(CounterType.SENSOR_SUMMATION);
-			diskTotalWriteTime.setDimensionName(diskStat.getDeviceName());
-			diskTotalWriteTime.setValue(diskStat.getWriteTotalTime());
-			
-			iStats.add(diskTotalWriteTime);
+		return netOut;
+	}
+
+	private InstanceStat getNetworkInInstanceStat(String instanceId,
+			NetworkStats netStats) {
+		if (netStats == null) {
+			return null;
 		}
-		
-		return iStats;
+		InstanceStat netIn = new InstanceStat(instanceId);
+		netIn.setTimestamp(netStats.getTimestamp());
+		netIn.setMetricName(MetricName.NetworkIn.getMetricNameStr());
+		netIn.setCounterType(CounterType.SENSOR_SUMMATION);
+		netIn.setDimensionName(DimensionName.TOTAL.getDimensionNameStr());
+		netIn.setValue(netStats.getReceivedBytes());
+		return netIn;
+	}
+
+	private InstanceStat getCPUInstanceStat(String instanceId, CPUStats cStats) {
+		if (cStats == null) {
+			return null;
+		}
+		InstanceStat cpuUtilization = new InstanceStat(instanceId);
+		cpuUtilization.setTimestamp(cStats.getTimestamp());
+		cpuUtilization.setMetricName(MetricName.CPUUtilization.getMetricNameStr());
+		cpuUtilization.setCounterType(CounterType.SENSOR_SUMMATION);
+		cpuUtilization.setDimensionName(DimensionName.DEFAULT.getDimensionNameStr());
+		cpuUtilization.setValue(cStats.getCpuTime());
+		return cpuUtilization;
 	}
 
 	private List<String> getCurrentResourcesNames() {

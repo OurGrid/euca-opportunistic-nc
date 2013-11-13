@@ -159,7 +159,7 @@ public class NodeFacade implements IdlenessListener {
 		
 		long pollingInterval = Long.valueOf(pollingIntervalStr) * 1000;
 		this.sensor = new Sensor(pollingInterval, instanceRepository);
-		sensorExecutor.schedule(sensor, pollingInterval, TimeUnit.MILLISECONDS);
+		sensorExecutor.scheduleWithFixedDelay(sensor, 0, pollingInterval, TimeUnit.MILLISECONDS);
 	}
 	
 	private NodeFacade() {

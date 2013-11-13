@@ -9,7 +9,9 @@ public class MetricCounter extends MetricCounterType {
 		long sequenceNumber, String counterType) {
 		
 		setCollectionIntervalMs(collectionIntervalMs);
-		setDimensions(dimensions);
+		if (dimensions != null && dimensions.length >= 1) {
+			setDimensions(dimensions);
+		}
 		setSequenceNum(sequenceNumber);
 		setType(counterType);
 	}

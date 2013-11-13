@@ -33,7 +33,9 @@ public class MetricDimension extends MetricDimensionsType {
 		if (values.size() > Sensor.MAX_SENSOR_RESOURCES) {
 			values.removeFirst();
 		}
-		setValues((MetricDimensionsValuesType[]) values.toArray());
+		MetricDimensionsValuesType[] valuesArray = values.toArray(
+				new MetricDimensionsValuesType[]{});
+		setValues(valuesArray);
 	}
 	
 	public MetricDimension(String dimensionName, MetricDimensionsValuesType[] values) {

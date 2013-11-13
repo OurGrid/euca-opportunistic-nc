@@ -13,7 +13,10 @@ public class SensorResource extends SensorsResourceType {
 		setResourceName(resourceName);
 		setResourceType(resourceType);
 		setResourceUuid(resourceUuid);
-		setMetrics((MetricsResourceType[]) metrics.toArray());
+		MetricsResourceType[] metricsArray = metrics.toArray(new MetricsResourceType[]{});
+		if (metricsArray.length >= 1) {
+			setMetrics(metricsArray);
+		}
 	}
 	
 	@Override

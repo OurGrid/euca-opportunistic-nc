@@ -29,9 +29,11 @@ public class SensorMetric extends MetricsResourceType {
 
 	private static final long serialVersionUID = 1L;
 	
-	public SensorMetric(String metricName, MetricCounterType[] counters) {
-		setMetricName(metricName);
-		setCounters(counters);
+		public SensorMetric(String metricName, MetricCounterType[] counters) {
+			setMetricName(metricName);
+			if (counters != null && counters.length >= 1) {
+				setCounters(counters);
+			}
 	}
 
 	@Override
