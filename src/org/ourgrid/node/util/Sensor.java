@@ -317,7 +317,9 @@ public class Sensor implements Runnable {
 		List<String> resourcesNames = new ArrayList<String>();
 		List<InstanceType> instances = instanceRepository.getInstances();
 		for (InstanceType instance : instances) {
-			resourcesNames.add(instance.getInstanceId());
+			if (instance.getStateName().equals(InstanceRepository.EXTANT_STATE)) {
+				resourcesNames.add(instance.getInstanceId());
+			}
 		}
 		return resourcesNames;
 	}
