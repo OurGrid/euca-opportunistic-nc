@@ -13,7 +13,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.IOUtils;
 import org.ourgrid.node.util.NodeProperties;
 
-public class LinuxXSessionIdlenessDetector implements Runnable, IdlenessChecker {
+public class LinuxXSessionIdlenessDetector implements Runnable, IdlenessDetector {
 
 	private Date lastModification;
 	private String xSessionIdlenessFile;
