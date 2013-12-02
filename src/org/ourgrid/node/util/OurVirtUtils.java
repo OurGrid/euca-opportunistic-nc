@@ -78,6 +78,7 @@ public class OurVirtUtils {
         conf.put(VirtualMachineConstants.MAC, macAddress);
         conf.put(VirtualMachineConstants.USE_USB_HUB, Boolean.TRUE.toString());
         conf.put(VirtualMachineConstants.USE_CONSOLE_OUTPUT_FILE, Boolean.TRUE.toString());
+        conf.put(VirtualMachineConstants.TAP_WINDOWS_DIR, properties.getProperty(NodeProperties.TAP_WINDOWS_DIR));
         
         VirtualMachineStatus vmStatus = OURVIRT.status(HYPERVISOR, vmName);
         if (vmStatus.equals(VirtualMachineStatus.NOT_REGISTERED)) {

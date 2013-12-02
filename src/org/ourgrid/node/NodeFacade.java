@@ -107,6 +107,7 @@ import edu.ucsb.eucalyptus.VolumeType;
 
 public class NodeFacade implements IdlenessListener {
 
+	private static final int DEF_POLLING_INTERVAL = 300000;
 	private static final String SUCCESS_STATE = "0";
 	private static final String UNSUCCESS_STATE = "2";
 	private final static Logger LOGGER = Logger.getLogger(NodeFacade.class);
@@ -154,7 +155,11 @@ public class NodeFacade implements IdlenessListener {
 		String pollingIntervalStr = properties.getProperty(
 				NodeProperties.SENSOR_POLLING_INTERVAL);
 		
-		long pollingInterval = Long.valueOf(pollingIntervalStr) * 1000;
+		long pollingInterval = DEF_POLLING_INTERVAL;
+		if (pollingIntervalStr != null) {
+			pollingInterval = Long.valueOf(pollingIntervalStr) * 1000;
+		}
+		
 		this.sensor = new Sensor(pollingInterval, instanceRepository);
 		sensorExecutor.scheduleWithFixedDelay(sensor, 0, pollingInterval, TimeUnit.MILLISECONDS);
 	}

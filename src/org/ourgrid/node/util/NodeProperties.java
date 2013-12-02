@@ -30,4 +30,5 @@ public class NodeProperties {
 	public static final String PAE_ENABLED = "vm.pae.enabled";
 	public static final String SENSOR_POLLING_INTERVAL = "sensor.polling.interval";
 	public static final String CLOUDKEY_ALIAS = "node.keystore.cloud.alias";
+	public static final String TAP_WINDOWS_DIR = "tapwindows.dir";
 }
