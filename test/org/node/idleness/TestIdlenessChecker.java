@@ -1,8 +1,9 @@
 package org.node.idleness;
 
-import org.ourgrid.node.idleness.IdlenessChecker;
+import org.ourgrid.node.idleness.IdlenessDetector;
+import org.ourgrid.node.idleness.IdlenessListener;
 
-public class TestIdlenessChecker implements IdlenessChecker {
+public class TestIdlenessChecker implements IdlenessDetector {
 
 	private boolean isIdle = true;
 	
@@ -13,6 +14,16 @@ public class TestIdlenessChecker implements IdlenessChecker {
 	@Override
 	public boolean isIdle() {
 		return isIdle;
+	}
+
+	@Override
+	public void init() {
+		// TODO Auto-generated method stub
+	}
+
+	@Override
+	public void addListener(IdlenessListener listener) {
+		// TODO Auto-generated method stub
 	}
 
 }
