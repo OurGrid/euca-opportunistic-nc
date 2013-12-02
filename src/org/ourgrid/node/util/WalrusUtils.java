@@ -281,7 +281,7 @@ public class WalrusUtils {
 				"-p", bt.getFilePrefix(),
 				"--euca-auth"
 		};
-		List<String> deleteArgsList = new ArrayList<>(Arrays.asList(deleteArgs));
+		List<String> deleteArgsList = new ArrayList<String>(Arrays.asList(deleteArgs));
 		
 		if (!bt.isBundleBucketExists()) {
 			deleteArgsList.add("--clear");
