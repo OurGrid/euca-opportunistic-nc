@@ -1,7 +1,6 @@
 package org.ourgrid.node.util;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.util.Properties;
 
 import org.hyperic.sigar.CpuInfo;
@@ -121,24 +120,5 @@ public class ResourcesInfoGatherer {
 	public String getOSType() {
 		return OperatingSystem.getInstance().getName();
 	}
-	
-	//TODO Remove this after testing
-	public static void main(String[] args) throws Exception {
-		Properties properties = new Properties();
-		properties.load(new FileInputStream("WebContent/WEB-INF/conf/euca.conf"));
-		ResourcesInfoGatherer rig = new ResourcesInfoGatherer(properties);
-		
-		InstanceRepository iRep = new InstanceRepository();
-		
-		Resources res1, res2;
-//		res1 = rig.describeAvailable(iRep);
-		
-//		res2 = rig.describeAvailable(iRep);
-		
-		System.out.println(rig.getOSType());
-		System.out.println("Finished!");		
-	}
-
-	
 	
 }

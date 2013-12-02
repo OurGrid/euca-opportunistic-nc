@@ -38,7 +38,6 @@ import org.ourgrid.node.util.Sensor;
 import org.ourgrid.node.util.VBRUtils;
 import org.ourgrid.node.util.VolumeUtils;
 import org.ourgrid.node.util.WalrusUtils;
-import org.ourgrid.virt.strategies.HypervisorUtils;
 
 import edu.ucsb.eucalyptus.BundleTaskType;
 import edu.ucsb.eucalyptus.InstanceType;
@@ -162,9 +161,10 @@ public class NodeFacade implements IdlenessListener {
 	
 	private IdlenessDetector createIdlenessDetector(Properties properties) {
 		IdlenessDetector idlenessDetector = null;
-		if (HypervisorUtils.isLinuxHost()) {
+		String osType = resourcesGatherer.getOSType();
+		if (osType.equals("Linux")) {
 			idlenessDetector = new LinuxDevInputIdlenessDetector(properties);
-		} else if (HypervisorUtils.isWindowsHost()) {
+		} else if (osType.equals("Win32")) {
 			idlenessDetector = new Win32IdlenessDetector(properties);
 		}
 		if (idlenessDetector != null) {
@@ -657,18 +657,25 @@ public class NodeFacade implements IdlenessListener {
 		
 		LOGGER.info("Powering down Node Controller.");
 		
-		if (!resourcesGatherer.getOSType().equals("Linux")) {
+		ProcessBuilder powerDownPB = null;
+		
+		if (resourcesGatherer.getOSType().equals("Linux")) {
+			powerDownPB = new ProcessBuilder("sudo", "/usr/sbin/powernap-now");
+		} else if (resourcesGatherer.getOSType().equals("Win32")) {
+			powerDownPB = new ProcessBuilder("shutdown /h");
+		}
+		
+		if (powerDownPB != null) {
+			try {
+				powerDownPB.start();
+			} catch (Exception e) {
+				//Best-effort approach: Does not check for command successful run 
+			}
+			powerDown.setStatusMessage(SUCCESS_STATE);
+		} else {
 			LOGGER.warn("Power Down operation cannot be executed " +
 					"because OS Type is not Linux");
 			powerDown.setStatusMessage(UNSUCCESS_STATE);
-		} else {
-			try {
-				ProcessBuilder powerDownPB = new ProcessBuilder("sudo", 
-						"/usr/sbin/powernap-now");
-				powerDownPB.start();
-				//Best-effort approach: Does not check for command successful run 
-			} catch(Exception e) {}
-			powerDown.setStatusMessage(SUCCESS_STATE);
 		}
 		
 		//Set standard output fields
