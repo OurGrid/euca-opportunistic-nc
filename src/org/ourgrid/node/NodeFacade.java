@@ -665,7 +665,7 @@ public class NodeFacade implements IdlenessListener {
 		ProcessBuilder powerDownPB = null;
 		
 		if (resourcesGatherer.getOSType().equals("Linux")) {
-			powerDownPB = new ProcessBuilder("sudo", "/usr/sbin/powernap-now");
+			powerDownPB = new ProcessBuilder("sudo", "/usr/sbin/pm-hibernate");
 		} else if (resourcesGatherer.getOSType().equals("Win32")) {
 			powerDownPB = new ProcessBuilder("shutdown /h");
 		}
