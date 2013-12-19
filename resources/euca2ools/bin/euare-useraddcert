@@ -1,7 +1,0 @@
-#!/usr/bin/python
-
-import euca2ools.commands.euare.uploadsigningcertificate
-
-if __name__ == '__main__':
-    r = euca2ools.commands.euare.uploadsigningcertificate.UploadSigningCertificate()
-    r.main_cli()
