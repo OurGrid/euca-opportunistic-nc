@@ -2,8 +2,8 @@
 <project basedir="." default="jar.server">
     <!--Auto generated ant build file-->
     <property environment="env"/>
-    <property name="axis2.home" value="${env.AXIS2_HOME}"/>
     <property name="project.base.dir" value="."/>
+    <property name="axis2.home" value="${project.base.dir}/WebContent/axis2-web"/>
     <property name="maven.class.path" value=""/>
     <property name="name" value="EucalyptusNC"/>
     <property name="src" value="${project.base.dir}/src"/>
