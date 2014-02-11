@@ -1,8 +1,13 @@
 package org.ourgrid.node;
 
+import java.util.ArrayList;
+
 import org.ourgrid.node.model.InstanceRepository;
+import org.ourgrid.node.model.sensor.SensorResource;
+import org.ourgrid.node.util.Sensor;
 
 import edu.ucsb.eucalyptus.InstanceType;
+import edu.ucsb.eucalyptus.MetricsResourceType;
 import edu.ucsb.eucalyptus.VirtualMachineType;
 
 public class TestUtils {
@@ -60,9 +65,11 @@ public class TestUtils {
 	}
 	
 	public static InstanceType addInstanceWithSensorToRepository(NodeFacade facade,
-			InstanceRepository iRep) {
+			InstanceRepository iRep, Sensor sensor) {
 		InstanceType instance = createBasicInstance();
-				
+		instance.setStateName(InstanceRepository.EXTANT_STATE);
+		sensor.getCache().addResource(new SensorResource(instance.getInstanceId(), "CPU",
+				"3", new ArrayList<MetricsResourceType>()));
 		return addInstanceToRepository(instance, facade, iRep);
 	}
 

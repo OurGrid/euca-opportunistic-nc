@@ -16,6 +16,7 @@ import org.ourgrid.node.model.InstanceRepository;
 import org.ourgrid.node.util.NodeProperties;
 import org.ourgrid.node.util.OurVirtUtils;
 import org.ourgrid.node.util.ResourcesInfoGatherer;
+import org.ourgrid.node.util.Sensor;
 import org.ourgrid.virt.OurVirt;
 
 import edu.ucsb.eucalyptus.InstanceType;
@@ -53,7 +54,8 @@ public class TestNcDescribeResource {
 		ResourcesInfoGatherer resIG = 
 				new ResourcesInfoGatherer(properties, sigarMock);
 		
-		facade = new NodeFacade(properties, testIChecker, resIG, instanceRepository);
+		Sensor sensor = new Sensor(0, instanceRepository);
+		facade = new NodeFacade(properties, testIChecker, resIG, instanceRepository, sensor);
 		OurVirtUtils.setOurVirt(ourvirtMock);
 	}
 	

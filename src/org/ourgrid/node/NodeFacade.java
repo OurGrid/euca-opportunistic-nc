@@ -107,6 +107,7 @@ import edu.ucsb.eucalyptus.VolumeType;
 
 public class NodeFacade implements IdlenessListener {
 
+	private static final String EUCACONF_FILE = "../conf/euca.conf";
 	private static final int DEF_POLLING_INTERVAL = 300000;
 	private static final String SUCCESS_STATE = "0";
 	private static final String UNSUCCESS_STATE = "2";
@@ -125,7 +126,8 @@ public class NodeFacade implements IdlenessListener {
 	public NodeFacade(Properties properties, 
 			IdlenessDetector iChecker,
 			ResourcesInfoGatherer resIG,
-			InstanceRepository iRep) throws Exception {
+			InstanceRepository iRep, 
+			Sensor sensor) throws Exception {
 		
 		this(properties);
 		
@@ -138,6 +140,8 @@ public class NodeFacade implements IdlenessListener {
 		}
 		
 		this.idlenessChecker = iChecker;
+		this.sensor = sensor;
+		this.sensor.run();
 	}
 	
 	public NodeFacade(Properties properties) {
@@ -163,7 +167,7 @@ public class NodeFacade implements IdlenessListener {
 		this.sensor = new Sensor(pollingInterval, instanceRepository);
 		sensorExecutor.scheduleWithFixedDelay(sensor, 0, pollingInterval, TimeUnit.MILLISECONDS);
 	}
-	
+	//TODO make it launch a better exception
 	private IdlenessDetector createIdlenessDetector(Properties properties) {
 		IdlenessDetector idlenessDetector = null;
 		String osType = resourcesGatherer.getOSType();
@@ -172,9 +176,11 @@ public class NodeFacade implements IdlenessListener {
 		} else if (osType.equals("Win32")) {
 			idlenessDetector = new Win32IdlenessDetector(properties);
 		}
-		if (idlenessDetector != null) {
+		try {
 			idlenessDetector.addListener(this);
 			idlenessDetector.init();
+		} catch (Exception e) {
+			LOGGER.error("Failed to create an Idleness Detector: {}", e);
 		}
 		return idlenessDetector;
 	}
@@ -187,7 +193,7 @@ public class NodeFacade implements IdlenessListener {
 		try {
 			Properties properties = new Properties();
 			properties.load(NodeFacade.class.getClassLoader().getResourceAsStream(
-					"../conf/euca.conf"));
+					EUCACONF_FILE));
 			return properties;
 		} catch (IOException e) {
 			LOGGER.error("Error while loading properties file.", e);
@@ -420,7 +426,7 @@ public class NodeFacade implements IdlenessListener {
 		return new Runnable() {
 			public void run() {
 				LOGGER.info("Lauching instance [" + 
-						instanceRequest.getInstanceId() + "] startup thread.");
+						instanceRequest.getInstanceId() + "] startup thread. of the type: " + instanceRequest.getInstanceType().getName());
 				
 				checkInstanceExists(instanceRequest.getInstanceId());
 				
@@ -705,15 +711,12 @@ public class NodeFacade implements IdlenessListener {
 		for (String instanceId : describeSensorsRequest.getInstanceIds()) {
 			checkInstanceExists(instanceId);
 		}
-		
 		if (!isArrayEmpty(describeSensorsRequest.getSensorIds())) {
 			throw new IllegalArgumentException("No support for sensorIds[]");
 		}
-		
 		describeSensors.set_return(true);
 		describeSensors.setUserId(describeSensorsRequest.getUserId());
 		describeSensors.setCorrelationId(describeSensorsRequest.getCorrelationId());
-		
 		SensorCache cache = sensor.getCache();
 		List<SensorResource> resources = cache.getSensorResources();
 		SensorsResourceType[] sensorResources = new SensorsResourceType[resources.size()];
@@ -723,7 +726,6 @@ public class NodeFacade implements IdlenessListener {
 		describeSensors.setSensorsResources(sensorResources);
 		
 		describeSensorsResponse.setNcDescribeSensorsResponse(describeSensors);
-		
 		return describeSensorsResponse;
 	}
 	

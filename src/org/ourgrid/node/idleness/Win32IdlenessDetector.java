@@ -45,6 +45,7 @@ public class Win32IdlenessDetector extends AbstractIdlenessDetector {
         return Kernel32.INSTANCE.GetTickCount() - lastInputInfo.dwTime;
     }
 
+	// Idleness time is given in seconds.
 	@Override
 	protected boolean checkIdle(Long idlenessTime) {
 		if (!isEnabled()) {

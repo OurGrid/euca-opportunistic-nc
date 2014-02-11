@@ -13,6 +13,7 @@ import org.ourgrid.node.model.InstanceRepository;
 import org.ourgrid.node.model.sensor.MetricValue;
 import org.ourgrid.node.model.sensor.SensorResource;
 import org.ourgrid.node.util.OurVirtUtils;
+import org.ourgrid.node.util.Sensor;
 import org.ourgrid.virt.OurVirt;
 
 import edu.ucsb.eucalyptus.InstanceType;
@@ -28,13 +29,15 @@ public class TestNcDescribeSensors {
 	private TestIdlenessChecker testIChecker = new TestIdlenessChecker();
 	private InstanceRepository instanceRepository = new InstanceRepository();
 	private Properties properties;
+	private Sensor sensor;
 	private static final int DEF_COLLECTION_INT_TIME_MS = 30; 
 	
 	@Before
 	public void init() throws Exception {
 		properties = new Properties();
 		properties.load(new FileInputStream("WebContent/WEB-INF/conf/euca.conf"));
-		facade = new NodeFacade(properties, testIChecker, null, instanceRepository);
+		this.sensor = new Sensor(0, instanceRepository);
+		facade = new NodeFacade(properties, testIChecker, null, instanceRepository, sensor);
 		OurVirtUtils.setOurVirt(ourvirtMock);
 	}
 	
@@ -67,7 +70,7 @@ public class TestNcDescribeSensors {
 	public void testNonEmptySensorsArray() throws Exception {
 		
 		InstanceType instance = TestUtils.addInstanceWithSensorToRepository(
-				facade, instanceRepository);
+				facade, instanceRepository, sensor);
 		
 		String[] instancesIds = {instance.getInstanceId()};
 		String[] sensorsIds = {TestUtils.DEFAULT_INSTANCE_ID};
@@ -83,8 +86,8 @@ public class TestNcDescribeSensors {
 	public void testMainFlow() throws Exception {
 		
 		InstanceType instance = TestUtils.addInstanceWithSensorToRepository(
-				facade, instanceRepository);
-		
+				facade, instanceRepository, sensor);
+		sensor.run();
 		String[] instancesIds = {instance.getInstanceId()};
 		String[] sensorsIds =  new String[1];
 		

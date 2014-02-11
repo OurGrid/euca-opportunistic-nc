@@ -9,6 +9,7 @@ import org.mockito.Mockito;
 import org.node.idleness.TestIdlenessChecker;
 import org.ourgrid.node.model.InstanceRepository;
 import org.ourgrid.node.util.OurVirtUtils;
+import org.ourgrid.node.util.Sensor;
 import org.ourgrid.virt.OurVirt;
 
 import edu.ucsb.eucalyptus.InstanceType;
@@ -29,7 +30,8 @@ public class TestNcRebootInstance {
 	public void init() throws Exception {
 		properties = new Properties();
 		properties.load(new FileInputStream("WebContent/WEB-INF/conf/euca.conf"));
-		facade = new NodeFacade(properties, testIChecker, null, instanceRepository);
+		Sensor sensor = new Sensor(0, instanceRepository);
+		facade = new NodeFacade(properties, testIChecker, null, instanceRepository, sensor);
 		OurVirtUtils.setOurVirt(ourvirtMock);
 	}
 	

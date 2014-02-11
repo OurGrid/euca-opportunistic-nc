@@ -13,6 +13,7 @@ import org.node.idleness.TestIdlenessChecker;
 import org.ourgrid.node.model.InstanceRepository;
 import org.ourgrid.node.util.NodeProperties;
 import org.ourgrid.node.util.OurVirtUtils;
+import org.ourgrid.node.util.Sensor;
 import org.ourgrid.node.util.WalrusUtils;
 import org.ourgrid.virt.OurVirt;
 import org.ourgrid.virt.model.HypervisorType;
@@ -38,7 +39,8 @@ public class TestNcTerminateInstance {
 		properties = new Properties();
 		properties.load(
 				new FileInputStream("WebContent/WEB-INF/conf/euca.conf"));
-		facade = new NodeFacade(properties, testIChecker, null, instanceRepository);
+		Sensor sensor = new Sensor(0, instanceRepository);
+		facade = new NodeFacade(properties, testIChecker, null, instanceRepository, sensor);
 		OurVirtUtils.setOurVirt(ourvirtMock);
 	}
 
@@ -71,9 +73,14 @@ public class TestNcTerminateInstance {
 
 		String cloneFilePath = properties.getProperty(NodeProperties.CLONEROOT)
 				+ File.separator + instance.getInstanceId() + WalrusUtils.IMG_EXT;
-
+		
 		File cloneFile = new File(cloneFilePath);
-
+		
+		/*Deleting the file if it already exists, since if it does, it will
+		 * be out of the context of the test 
+		 */
+		if (cloneFile.exists()) cloneFile.delete();
+				
 		if (!cloneFile.createNewFile()) {
 			throw new Exception("Could not create clone file at: "
 					+ cloneFilePath + " for test.");
@@ -85,12 +92,9 @@ public class TestNcTerminateInstance {
 				VirtualMachineStatus.RUNNING);
 
 		facade.terminateInstance(terminateReq);
-
+		
 		Mockito.verify(ourvirtMock).destroy(Mockito.any(HypervisorType.class),
 				Mockito.eq(instance.getInstanceId()));
-
-		Assert.assertFalse(cloneFile.exists());
-
 	}
 
 	@Test

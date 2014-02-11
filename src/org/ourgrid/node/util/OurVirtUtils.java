@@ -59,8 +59,7 @@ public class OurVirtUtils {
 		conf.put(VirtualMachineConstants.GUEST_PASSWORD, 
 				properties.getProperty(NodeProperties.GUEST_PASSWD));
 		conf.put(VirtualMachineConstants.MEMORY, String.valueOf(instanceType.getMemory()));
-//		conf.put(VirtualMachineConstants.OS, instanceRequest.getPlatform());
-		conf.put(VirtualMachineConstants.OS, "linux");
+		conf.put(VirtualMachineConstants.OS, instanceRequest.getPlatform());
 		conf.put(VirtualMachineConstants.NETWORK_TYPE, 
 				properties.getProperty(NodeProperties.NETWORK_TYPE));
 		conf.put(VirtualMachineConstants.OS_VERSION, 
@@ -76,9 +75,12 @@ public class OurVirtUtils {
 				properties.getProperty(NodeProperties.START_TIMEOUT));
         String macAddress = instanceRequest.getNetParams().getPrivateMacAddress();
         conf.put(VirtualMachineConstants.MAC, macAddress);
-        conf.put(VirtualMachineConstants.USE_USB_HUB, Boolean.TRUE.toString());
-        conf.put(VirtualMachineConstants.USE_CONSOLE_OUTPUT_FILE, Boolean.TRUE.toString());
-        conf.put(VirtualMachineConstants.TAP_WINDOWS_DIR, properties.getProperty(NodeProperties.TAP_WINDOWS_DIR));
+        conf.put(VirtualMachineConstants.USE_USB_HUB, 
+        		Boolean.TRUE.toString());
+        conf.put(VirtualMachineConstants.USE_CONSOLE_OUTPUT_FILE,
+        		Boolean.TRUE.toString());
+        conf.put(VirtualMachineConstants.TAP_WINDOWS_DIR,
+        		properties.getProperty(NodeProperties.TAP_WINDOWS_DIR));
         
         VirtualMachineStatus vmStatus = OURVIRT.status(HYPERVISOR, vmName);
         if (vmStatus.equals(VirtualMachineStatus.NOT_REGISTERED)) {

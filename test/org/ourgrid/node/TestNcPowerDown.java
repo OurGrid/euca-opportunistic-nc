@@ -11,6 +11,7 @@ import org.node.idleness.TestIdlenessChecker;
 import org.ourgrid.node.model.InstanceRepository;
 import org.ourgrid.node.util.OurVirtUtils;
 import org.ourgrid.node.util.ResourcesInfoGatherer;
+import org.ourgrid.node.util.Sensor;
 import org.ourgrid.virt.OurVirt;
 
 import edu.ucsb.eucalyptus.NcPowerDown;
@@ -33,7 +34,8 @@ public class TestNcPowerDown {
 	public void init() throws Exception {
 		properties = new Properties();
 		properties.load(new FileInputStream("WebContent/WEB-INF/conf/euca.conf"));
-		facade = new NodeFacade(properties, testIChecker, rIGMock, instanceRepository);
+		Sensor sensor = new Sensor(0, instanceRepository);
+		facade = new NodeFacade(properties, testIChecker, rIGMock, instanceRepository, sensor);
 		OurVirtUtils.setOurVirt(ourvirtMock);
 	}
 	
@@ -61,7 +63,7 @@ public class TestNcPowerDown {
 		Assert.assertEquals(response.getUserId(), requestType.getUserId());
 		Assert.assertEquals(response.getCorrelationId(), 
 				requestType.getCorrelationId());
-		Assert.assertEquals(response.getStatusMessage(), UNSUCCESS_STATUS_MSG);
+		Assert.assertEquals(UNSUCCESS_STATUS_MSG, response.getStatusMessage());
 	}
 	
 	@Test
