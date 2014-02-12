@@ -17,7 +17,7 @@
         <pathelement path="${java.class.path}"/>
         <pathelement path="${maven.class.path}"/>
         <fileset dir="${axis2.home}">
-            <include name="lib/*.jar"/>
+            <include name="${project.base.dir}/WebContent/WEB-INF/lib/*.jar"/>
         </fileset>
     </path>
     <target name="init">
