@@ -3,7 +3,7 @@
     <!--Auto generated ant build file-->
     <property environment="env"/>
     <property name="project.base.dir" value="."/>
-    <property name="axis2.home" value="${project.base.dir}/WebContent/axis2-web"/>
+    <property name="axis2.home" value="."/>
     <property name="maven.class.path" value=""/>
     <property name="name" value="EucalyptusNC"/>
     <property name="src" value="${project.base.dir}/src"/>
@@ -17,7 +17,7 @@
         <pathelement path="${java.class.path}"/>
         <pathelement path="${maven.class.path}"/>
         <fileset dir="${axis2.home}">
-            <include name="${project.base.dir}/WebContent/WEB-INF/lib/*.jar"/>
+            <include name="lib/*.jar"/>
         </fileset>
     </path>
     <target name="init">
