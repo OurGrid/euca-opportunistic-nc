@@ -185,7 +185,7 @@
 								cryptoKey="org.apache.ws.security.crypto.merlin.file">
 								<ramp:property
 									name="org.apache.ws.security.crypto.merlin.keystore.type">JKS</ramp:property>
-								<ramp:property name="org.apache.ws.security.crypto.merlin.file">/local/tarciso/keystores/euca-keystore.jks</ramp:property>
+								<ramp:property name="org.apache.ws.security.crypto.merlin.file">/etc/foggy/keystore.jks</ramp:property>
 								<ramp:property
 									name="org.apache.ws.security.crypto.merlin.keystore.password">eucalyptus</ramp:property>
 							</ramp:crypto>
